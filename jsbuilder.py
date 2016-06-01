@@ -24,10 +24,10 @@ class JSBuilder(object):
 
     def consoleLog(self, msg='', type='log', obj=False):
         msg = '%s,%s' % (msg, obj) if obj else msg
-        return 'console.%s(%s)' % (type, msg)
+        return 'console.%s(%s);' % (type, msg)
 
     def var(self, name,value):
-        return 'var %s = %s' % (name,value)
+        return 'var %s = %s;' % (name,value)
 
     def setVars(self, json, params=()):
         """Set javascript variables names as values 
