@@ -2,7 +2,6 @@
 from .config import paths, applicationConfig, queryConfig, credentials
 from .jsbuilder import JSBuilder
 from IPython.display import HTML, IFrame
-from jinja2 import Template
 js = JSBuilder()
 
 class ZDVisualization(object):
@@ -15,7 +14,7 @@ class ZDVisualization(object):
     def __init__(self):
         """ To ensure maximum flexibility for the visualization configuration
         here must be setted all values that may change """
-        self.width = 900
+        self.width = 800
         self.height = 400
         self.renderCount = 0 #To render a different chart each time
         self.paths = paths
@@ -58,31 +57,44 @@ class ZDVisualization(object):
         """ Render the require wrapper with ZDSDK and jquery dep injection."""
         injlist = ['ZoomdataSDK','jquery']
         visualDiv = 'visual%s' % (str(self.renderCount))
-        visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'");')
+        visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'")')
         zdSDK = self.__connectionPromise()
         p = visLocation + zdSDK
         param = js.createFunc(params=injlist, body=p, anon=True)
         return 'require(%s,%s)' % (js.s(injlist), param)
 
     def __getVisualization(self):
+        """Set up of the final code snippet to be rendered"""
+        w, h = self.width, self.height
         visualDiv = 'visual%s' % (str(self.renderCount))
-        h = str(self.height)
-        w = str(self.width)
-        htmlcode = "<div id='"+visualDiv+"' style='width:"+w+"px; height:"+h+"px; top:20%; float:left'></div>"
-        jscode = '''<script type="text/javascript"> %s %s </script>''' \
-                    % (self.__setRequireConf(), self.__setRequire())
-        return htmlcode, jscode
+        requirejs = '<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js"></script>'
+        htmlcode = '<div id="%s" style="width:%spx; height:%spx; top:20%%"></div>' % (visualDiv, str(w), str(h))
+        jscode = '<script type="text/javascript">\n%s %s \n</script>' % (self.__setRequireConf(), self.__setRequire())
+        html = htmlcode + jscode
+        iframe = """<iframe 
+                        srcdoc='<div>%s %s</div>' 
+                        src='' 
+                        width='%s' 
+                        height='%s' 
+                        sandbox='allow-scripts' 
+                        frameborder='0'>
+                    </iframe>
+        """ % (requirejs, html, str(w+40), str(h+20) )
+        return iframe, htmlcode, jscode
 
     def visualize(self):
-        # print(htmlcode + jscode)
-        htmlcode, jscode = self.__getVisualization()
+        iframe = self.__getVisualization()[0]
         self.renderCount += 1
-        return HTML(htmlcode + jscode)
+        return HTML(iframe)
 
     def getHTML(self):
-        htmlcode, jscode = self.__getVisualization()
-        htmlfull = (htmlcode + jscode).replace('\\','')
-        print (htmlfull)
+        try:
+            import jsbeautifier
+            iframe, html, jscode = self.__getVisualization()
+            jscode = jsbeautifier.beautify(jscode)
+            print (html+'\n'+jscode)
+        except ImportError:
+            print ('Module jsbeautifier is required for this feature')
 
 
 
