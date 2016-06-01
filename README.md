@@ -1,4 +1,4 @@
-# Jupyter - ZDVIS
+# Jupyter - ZDvis
 
 ZDVIS is a python module that allows to render Zoomdata visualizations into your Jupyter notebooks using the public Zoomdata SDK.
 
@@ -19,7 +19,7 @@ First you need to import the module
 from zdvis import ZD
 ```
 
-ZD is a python object contaning the configurations to render a ZD visualization. By default is using the 'Real Time Sales' data sources.
+ZD is a python object contaning the configurations to render a ZD visualization. By default it is using the 'Real Time Sales' data sources.
 
 To render a visualization:
 
@@ -32,4 +32,4 @@ To change the visualization chart type
 ZD.visual['visualization'] = 'Heat Map'
 ```
 
-You can inspect the differents ZD attributes by pressing <tab> after ZD.
+You can inspect the differents ZD attributes by pressing the `tab` key as autocomplete for `ZD.`
