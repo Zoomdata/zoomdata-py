@@ -23,6 +23,7 @@ class JSBuilder(object):
         return jsFunc
 
     def consoleLog(self, msg='', type='log', obj=False):
+        msg = "'%s'" % msg
         msg = '%s,%s' % (msg, obj) if obj else msg
         return 'console.%s(%s);' % (type, msg)
 
