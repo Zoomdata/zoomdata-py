@@ -3,6 +3,7 @@ from .config import *
 from .jsbuilder import JSBuilder
 from .templates import Template
 from IPython.display import HTML
+import os
 js = JSBuilder()
 t = Template()
 
@@ -28,6 +29,7 @@ class ZDVisualization(object):
         self.variables = {}
         self.metric = metric
         self.group = groups
+        self.filters = []
         self.metricParams = metricParams
         self.groupParams = groupParams
 
@@ -35,25 +37,22 @@ class ZDVisualization(object):
         #Set the require configuration part
         return 'require.config({paths:%s});' % js.s(self.paths)
 
-    def __createFilterSelect(self, name='', options=[]):
-        '''Wraps a list of strings (options) as an html select'''
-        opts = ''
-        if isinstance(options,(str)):
-            options = eval(options)
-        for o in options:
-            opts += t.optionFmt % (o,o)
-        return t.selectFmt % (name, name.lower(), opts)
+    def __getJSTools(self):
+        tools = ''
+        path = os.path.dirname(os.path.realpath(__file__))
+        with open(path+'/tools.js') as t: #Set of functions used within the script
+            tools = ''.join(t.readlines())
+        return tools
 
     def __getFilters(self):
-        dimensions = ["category", "group", "sku", "usergender", "usercity", "userstate", "zipcode", "$to_day(_ts)"] 
-        metrics = ["price", "plannedsales", "usersentiment"]
-        dim = self.__createFilterSelect('Dimension', dimensions)
-        met = self.__createFilterSelect('Metric', metrics)
+        opt = t.optionFmt % ('','Select option')
+        dim = t.selectFmt % ('Dimension', self.groupParams['name'], opt)
+        met = t.selectFmt % ('Metric', self.metricParams['name'], opt)
         return t.divFilters % (dim + met)
 
     def __createClient(self):
         credentials = {
-                'credentials': self.credentials,
+                'credentials': {'key': self.credentials},
                 'application': self.appConfig,
                 }
         params = js.s(credentials)
@@ -72,7 +71,12 @@ class ZDVisualization(object):
                            })
         p = js.s(visualconf)
         p = js.setVars(p, 'visLocation') #set the element for echarts rendering
-        done = '.done(%s);' % (js.createFunc(params='result',body='window.viz = result', anon=True))
+
+        # The function .done is where the Thread object is created
+        # and the specific data such as groups, variables, parameters,
+        # etc for the specific visualization being loaded
+        doneBody = t.doneBody % {'met': self.metricParams['name'], 'dim': self.groupParams['name'] }
+        done = '.done(%s);' % (js.createFunc(params='result',body=doneBody, anon=True))
         p = 'client.visualize(%s)%s' % (p, done)
         then1 = '.then(%s);' % (js.createFunc(params='client',body=p, anon=True))
         return prom+then+then1
@@ -80,20 +84,26 @@ class ZDVisualization(object):
     def __wrapper(self):
         """Wraps and render all the JS code inside the require module"""
         deps = ['ZoomdataSDK','jquery']
+        tools = self.__getJSTools()
         visualDiv = 'visual%s' % (str(self.renderCount))
+        varKernel = js.var('kernel','IPython.notebook.kernel')
+        varChart = js.var('chart',js.s(self.chart))
+        groupAccessor = js.var('groupAccessor',js.s(self.groupParams['attr']))
+        metricAccessor = js.var('metricAccessor',js.s(self.metricParams['attr']))
         visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'")')
-        varMetric   = js.var('metric', js.s(self.metric))
-        varGroup    = js.var('dimension', js.s(self.group))
+        varFilters  = js.var('filters', '[]')
+        #These two variables hold the selected metric and dimensions objects
+        varMetric   = js.var(self.metricParams['name'], js.s(self.metric))
+        varGroup    = js.var(self.groupParams['name'], js.s(self.group))
+        #The promise with the SDK connection code
         zdSDK = self.__connectionPromise()
         #. Jquery onchange handlers for the filters
-        metricJsParams = {'s':'metric'}
-        metricJsParams.update(self.metricParams)
-        dimensionJsParams = {'s':'dimension'}
-        dimensionJsParams.update(self.groupParams)
-        metricJS = t.filterJS % metricJsParams
-        dimensionJS = t.filterJS %  dimensionJsParams
+        metricJS = t.metricFilter % self.metricParams
+        dimensionJS = t.groupFilter %  self.groupParams
         # wrap everything up as the require callback body
-        cb = visLocation + varMetric + varGroup + zdSDK + metricJS + dimensionJS
+        cb = tools + visLocation + varFilters + varChart \
+            + groupAccessor + metricAccessor + varMetric \
+            + varGroup + zdSDK + metricJS + dimensionJS
         reqCallback = js.createFunc(params=deps, body=cb, anon=True)
         return 'require(%s,%s)' % (js.s(deps), reqCallback)
 
@@ -112,6 +122,7 @@ class ZDVisualization(object):
         iframe = self.__getVisualization()[0]
         self.renderCount += 1
         return HTML(iframe)
+        # return HTML(html + jscode)
 
     def getHTML(self):
         try:
