@@ -38,3 +38,45 @@ groupParams  = {'name': dim,
                 'function':'resetGroups', 
                 'params':dim}
 
+# SOURCE CREATION CONFIGS
+config = {
+        'mongoServer': 'pubsdk.zoomdata.com', 
+        'mongoPort': 27017,
+        "accountID": '56e9669ae4b03818a87e452c',
+        "headers":{
+                   'Content-Type': 'application/vnd.zoomdata.v1+json',
+                   'Authorization': 'Basic YWRtaW46WjAwTURBMUE=' }
+        }
+connReq = { 
+        'mongo': { "name": "",
+                    "connectorName": "mongo",
+                    "connectorParameters": {
+                            "password": "",
+                            "host": "localhost",
+                            "port": "27017",
+                            "db": "zoom",
+                            "username": ""
+                        },
+                    "created": {
+                      "by": {
+                        "username": "admin"
+                      }
+                    }
+                } #end mongo connector
+    }
+
+sourceReq = {
+    "cacheable": True,
+    "created": {
+      "by": {
+        "username": "admin"
+      }
+    },
+    "description": "Created by Jupyter Notebook session",
+    "name": "",
+    "sourceParameters": {
+      "collection": ""
+    },
+    "sparked": False
+}
+

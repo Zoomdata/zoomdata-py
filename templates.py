@@ -14,6 +14,11 @@ class Template(object):
                             frameborder='0'>
                         </iframe> """ 
 
+        self.loadmsg = '<p id="load-message" style="margin-top:10px" align="center">Loading visualization...</p>'
+
+        # Javascript tags to enclose all the js code
+        self.scriptTags = '<script type="text/javascript">%s %s</script>' 
+
         # Select and option string formatters
         self.selectFmt = '''<span>%s</span>
                             <select id="%s" style="margin-right:20px; margin-left:5px">%s<select>'''
@@ -21,9 +26,6 @@ class Template(object):
 
         # Div where the chart is rendered (by echartjs)
         self.divChart = '<div id="%s" style="width:%spx; height:%spx; top:20%%"></div>'
-
-        # Javascript tags to enclose all the js code
-        self.scriptTags = '<script type="text/javascript">%s %s</script>' 
 
         # Container div for the filters (metric, dimension) drop-downs
         self.divFilters = '<div style="display:inline-block" align="center">%s</div>' 
@@ -59,7 +61,6 @@ class Template(object):
                                 var f = getObj(name, filters)
                                 if(f.type == "MONEY" || f.type == "NUMBER" || f.type == "INTEGER"){ //is a metric
                                     %(metricVar)s = { func: f.func.toLowerCase(), label: f.label, name: f.name, type: f.type }
-                                    console.log("Metric object:", %(metricVar)s )
                                 }
                                 console.log("Metric:", name);
                                 console.log("metricAccessor:", metricAccessor);
@@ -94,7 +95,6 @@ class Template(object):
                           gFlag = false;
                           mFlag = false;
                           $.each(window.viz.source.objectFields, function() {
-                              console.log(this)
                               filters.push(this);
                               if(this.visible){
                                   if(this.type == "NUMBER" || this.type == "MONEY" || this.type == "INTEGER"){
@@ -115,4 +115,5 @@ class Template(object):
                                   }
                               }
                           });
+                          $("#load-message").html("");
                         '''
