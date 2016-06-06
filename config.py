@@ -45,7 +45,7 @@ config = {
         "accountID": '56e9669ae4b03818a87e452c',
         "headers":{
                    'Content-Type': 'application/vnd.zoomdata.v1+json',
-                   'Authorization': 'Basic YWRtaW46WjAwTURBMUE=' }
+                   'Authorization': '' }
         }
 connReq = { 
         'mongo': { "name": "",

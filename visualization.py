@@ -1,4 +1,7 @@
 #/usr/bin/python3
+import urllib3
+import json
+import base64
 from .config import *
 from .jsbuilder import JSBuilder
 from .templates import Template
@@ -18,11 +21,18 @@ class ZDVisualization(object):
     def __init__(self):
         """ To ensure maximum flexibility for the visualization configuration
         here must be setted all values that may change """
+        #Main configurations
+        self._appConfig = applicationConfig
+        self._conf = config
+        self._sourceCredentials = {}
+        if os.path.exists('data/sources.json'):
+            with open('data/sources.json','r') as sc:
+                self._sourceCredentials = json.load(sc)
+        #Visualization
         self._width = 800
         self._height = 400
         self._renderCount = 0 #To render a different chart each time
         self._paths = paths
-        self._appConfig = applicationConfig
         self._query = queryConfig
         self._credentials =credentials
         self._source = source
@@ -33,10 +43,16 @@ class ZDVisualization(object):
         self._filters = []
         self._metricParams = metricParams
         self._groupParams = groupParams
+
         #Attrs for new source/collection creation
-        self._conf = config
         self._connReq = connReq
         self._sourceReq = sourceReq
+
+    def auth(self, user, password):
+        x = user+':'+password
+        key = base64.b64encode(x.encode('ascii'))
+        key = 'Basic ' + key.decode('ascii')
+        self._conf['headers']['Authorization'] = key
         
     def __createSource(self, collectionName, connectionName):
         """ Wraps up and generate the needed js code to connect with the ZD SDK
@@ -96,11 +112,15 @@ class ZDVisualization(object):
                     handler: The store handler, 'mongo' is used by default
                     connName: The name of the connection, if no name is specified, the collection name will be used.
         """
-        if handler in ['mongo','spark']:
-            if handler == 'mongo':
-                return self.__createMongoCollection(collectionName, dataframe, connName)
+        if(self._conf['headers']['Authorization']):
+            if handler in ['mongo','spark']:
+                if handler == 'mongo':
+                    return self.__createMongoCollection(collectionName, dataframe, connName)
+            else:
+                print('Invalid collection handler!')
         else:
-            print('Invalid collection handler!')
+            print('You need to authenticate: ZD.auth("user","password")')
+
             
     def __setRequireConf(self):
         #Set the require configuration part
@@ -150,7 +170,6 @@ class ZDVisualization(object):
         then1 = '.then(%s);' % (js.createFunc(params='client',body=p, anon=True))
         return prom+then+then1
 
-
     def __wrapper(self):
         """Wraps and render all the JS code inside the require module"""
         tools = self.__getJSTools()
@@ -190,9 +209,12 @@ class ZDVisualization(object):
     def render(self):
         """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
         chart, source, etc. to render an specific visualization """
-        iframe = self.__getVisualization()[0]
-        self._renderCount += 1
-        return HTML(iframe)
+        if(self._conf['headers']['Authorization']):
+            iframe = self.__getVisualization()[0]
+            self._renderCount += 1
+            return HTML(iframe)
+        else:
+            print('You need to authenticate: ZD.auth("user","password")')
         # return HTML(html + jscode)
 
     def getHTML(self):
@@ -284,7 +306,29 @@ class ZDVisualization(object):
 
     @source.setter
     def source(self, value):
-        self._source = value
+        credentials = ''
+        if self._sourceCredentials.get(value, False):
+            self._credentials = self._sourceCredentials[value]
+            self._source = value
+        else:
+            http = urllib3.PoolManager()
+            service = '/service/sources/key?source='+value.replace(' ','+')
+            url = 'https://%s:%s%s' % (self._appConfig['host'], self._appConfig['port'], self._appConfig['path'])
+            r = http.request('GET', url+service ,headers=self._conf['headers'])
+            resp = json.loads(r.data.decode('ascii'))
+            failed = False
+            if resp.get("error", False):
+                failed = True
+                print (r.data)
+            if resp.get("details", False):
+                failed = True
+                print ("Incorrect source name")
+            if not failed:
+                self._credentials = resp['id']
+                self._source = value
+                self._sourceCredentials.update({value: resp['id']})
+                with open('data/sources.json', 'w') as sc:
+                    json.dump(self._sourceCredentials, sc)
 
     @property
     def variables(self):
