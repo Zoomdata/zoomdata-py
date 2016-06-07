@@ -109,25 +109,27 @@ class ZDVisualization(object):
     def __createMongoCollection(self, name, df, connName):
         """ Creates a MongoDB collection """
         try:
-            print('creating collection '+name+'...')
             from pymongo import MongoClient
             client = MongoClient(self._conf['mongoServer'], self._conf['mongoPort'] )
             db = getattr(client, self._conf["mongoSchema"])
-            titanic = db[name] 
-            titanic.insert_many(df)
-            print('collection created on db')
-            print('creating data source...')
+            collection = db[name] 
+            if df: # Use the dataframe if it is specified
+                print('Creating collection '+name+'...')
+                collection.insert_many(df)
+                print('collection created on db')
+            print('creating data source using collection '+name+'...')
             return self.__createSource(name, connName)
         except ImportError:
             print ('To create mongo collections you must have the pymongo module installed')
         except Exception as e:
             print('Error: '+str(e))
 
-    def createSource(self, sourceName, dataframe, handler='mongo', connName=False): 
+    def createSource(self, sourceName, dataframe=False, handler='mongo', connName=False): 
         """Creates a new Zoomdata collection using the specified parameters:
                 Parameters:
                     sourceName: The name given for the new source
-                    dataframe: Contains the data used to populate the source
+                    dataframe: Contains the data used to populate the source, if it is not specified
+                               then a collection with name sourceName will be used instead
                     handler: The store handler, 'mongo' is used by default
                     connName: The name of the connection, if no name is specified, the source name will be used.
         """
