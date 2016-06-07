@@ -1,4 +1,5 @@
 #/usr/bin/python3
+import os
 import urllib3
 import json
 import base64
@@ -6,7 +7,8 @@ from .config import *
 from .jsbuilder import JSBuilder
 from .templates import Template
 from IPython.display import HTML
-import os
+
+http = urllib3.PoolManager()
 js = JSBuilder()
 t = Template()
 deps = ['ZoomdataSDK','jquery']
@@ -22,20 +24,21 @@ class ZDVisualization(object):
         """ To ensure maximum flexibility for the visualization configuration
         here must be setted all values that may change """
         #Main configurations
-        self._appConfig = applicationConfig
         self._conf = config
         self._sourceCredentials = {}
         if os.path.exists('data/sources.json'):
             with open('data/sources.json','r') as sc:
                 self._sourceCredentials = json.load(sc)
+
         #Visualization
+        self.connResp = {}
         self._width = 800
         self._height = 400
         self._renderCount = 0 #To render a different chart each time
         self._paths = paths
         self._query = queryConfig
-        self._credentials =credentials
-        self._source = source
+        self._credentials = ''
+        self._source = ''
         self._chart = chart
         self._variables = {}
         self._metric = metric
@@ -49,43 +52,59 @@ class ZDVisualization(object):
         self._sourceReq = sourceReq
 
     def auth(self, user, password):
-        x = user+':'+password
-        key = base64.b64encode(x.encode('ascii'))
+        cred = user+':'+password
+        key = base64.b64encode(cred.encode('ascii'))
         key = 'Basic ' + key.decode('ascii')
+        self._connReq['mongo']['created']['by']['username'] = user
+        self._sourceReq['created']['by']['username'] = user
         self._conf['headers']['Authorization'] = key
-        
-    def __createSource(self, collectionName, connectionName):
-        """ Wraps up and generate the needed js code to connect with the ZD SDK
-        to create new data sources. 
-        """
-        connName = connectionName if connectionName else collectionName
-        htmlcode = "<div id='result'></div>"   
-        #Variable declaration
-        varAccId = js.var('accountID',js.s(self._conf['accountID']))
-        varConnReq = js.var('connReq',js.s(self._connReq['mongo']))
-        varCollection = js.var('collection',js.s(collectionName))
-        varConnName = js.var('connectionName',js.s(connName))
-        varHeaders = js.var('headers',js.s(self._conf['headers']))
-        varSourceReq = js.var('sourceReq',js.s(self._sourceReq))
-        # JS code to be executed to create the source
-        csCode = ''
-        path = os.path.dirname(os.path.realpath(__file__))
-        with open(path+'/js/createsource.js') as cs: 
-            csCode = ''.join(cs.readlines())
-        # Wrap everything up!
-        jscode = varAccId + varHeaders + varConnReq + varSourceReq + varCollection + varConnName + csCode
-        reqCallback = js.createFunc(params=deps, body=jscode, anon=True)
-        jscode = 'require(%s,%s)' % (js.s(deps), reqCallback)
-        jscode = t.scriptTags % (self.__setRequireConf(), jscode)
-        code = htmlcode + jscode
-        return HTML(code)
-        # print the createsource code
-        # import jsbeautifier
-        # from bs4 import BeautifulSoup as bs
-        # soup=bs(htmlcode,"lxml")
-        # html=soup.prettify()
-        # jscode = jsbeautifier.beautify(jscode)
-        # print (html+'\n'+jscode)
+
+    def __createConnection(self, connectionName):
+        service = '/api/accounts/'+self._conf['accountID']+'/connections'
+        url = 'https://%s:%s%s' % (self._conf['host'], self._conf['port'], self._conf['path'])
+        self._connReq['mongo']['name'] = connectionName
+        body=js.s(self._connReq['mongo'])
+        print('Creating connection...')
+        r = http.request('POST', url+service ,headers=self._conf['headers'], body=body)
+        if r.status in [200, 201]:
+            print('Connection created')
+            return r.data.decode('ascii')
+        else:
+            print(r.data.decode('ascii'))
+        return False
+
+    def __createSource(self, sourceName, connectionName):
+        # Try to get the connection first in case it exists
+        service = '/api/accounts/'+self._conf['accountID']+'/connections/name/'+connectionName
+        url = 'https://%s:%s%s' % (self._conf['host'], self._conf['port'], self._conf['path'])
+        r = http.request('GET', url+service, headers=self._conf['headers'])
+        if r.status in [200]:
+            connResponse = r.data.decode('ascii')
+        elif r.status in [403, 404]:
+            connResponse = self.__createConnection(connectionName)
+        else:
+            print(r.data.decode('ascii'))
+            return False
+        # If a valid connection response is available
+        if connResponse:
+            links = json.loads(connResponse)['links']
+            url = False
+            for l in links:
+                if l['rel'] == 'sources':
+                    url = l['href']
+            if url:
+                print('Good Url')
+                self._sourceReq['name'] = sourceName
+                self._sourceReq['sourceParameters']['collection']= sourceName;
+                body=js.s(self._sourceReq)
+                print('Creating source...')
+                r = http.request('POST', url, headers=self._conf['headers'], body=body)
+                if r.status in [200, 201]:
+                    print('Source created')
+                    return True
+                else:
+                    print(r.data.decode('ascii'))
+        return False
 
     def __createMongoCollection(self, name, df, connName):
         """ Creates a MongoDB collection """
@@ -93,10 +112,10 @@ class ZDVisualization(object):
             print('creating collection '+name+'...')
             from pymongo import MongoClient
             client = MongoClient(self._conf['mongoServer'], self._conf['mongoPort'] )
-            db = client.zoom #TODO: This is the mongo database, this must be configurable
+            db = getattr(client, self._conf["mongoSchema"])
             titanic = db[name] 
             titanic.insert_many(df)
-            print('collection created')
+            print('collection created on db')
             print('creating data source...')
             return self.__createSource(name, connName)
         except ImportError:
@@ -104,20 +123,43 @@ class ZDVisualization(object):
         except Exception as e:
             print('Error: '+str(e))
 
-    def createCollection(self, collectionName, dataframe, handler='mongo', connName=False): 
+    def createSource(self, sourceName, dataframe, handler='mongo', connName=False): 
         """Creates a new Zoomdata collection using the specified parameters:
                 Parameters:
-                    collectionName: The name given for the new collection
-                    dataframe: Contains the data used to populate the collection
+                    sourceName: The name given for the new source
+                    dataframe: Contains the data used to populate the source
                     handler: The store handler, 'mongo' is used by default
-                    connName: The name of the connection, if no name is specified, the collection name will be used.
+                    connName: The name of the connection, if no name is specified, the source name will be used.
         """
         if(self._conf['headers']['Authorization']):
             if handler in ['mongo','spark']:
                 if handler == 'mongo':
-                    return self.__createMongoCollection(collectionName, dataframe, connName)
+                    connName = connName or sourceName
+                    return self.__createMongoCollection(sourceName, dataframe, connName)
             else:
                 print('Invalid collection handler!')
+        else:
+            print('You need to authenticate: ZD.auth("user","password")')
+
+
+    def listSources(self):
+        """
+        List the availables sources for the account specified in ZD.conf["accountID"]
+        """
+        if(self._conf['headers']['Authorization']):
+            service = '/api/accounts/'+self._conf['accountID']+'/sources'
+            url = 'https://%s:%s%s' % (self._conf['host'], self._conf['port'], self._conf['path'])
+            r = http.request('GET', url+service ,headers=self._conf['headers'])
+            data = json.loads(r.data.decode('ascii'))
+            data = data.get('data',False)
+            sources = []
+            if data:
+                count = 1
+                for d in data:
+                    print(str(count) +'. '+d['name'])
+                    count += 1
+            else: 
+                print(data)
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
@@ -142,7 +184,10 @@ class ZDVisualization(object):
     def __createClient(self):
         credentials = {
                 'credentials': {'key': self._credentials},
-                'application': self._appConfig,
+                'application': {'secure': self._conf['secure'], 
+                                'host': self._conf['host'], 
+                                'port': self._conf['port'], 
+                                'path': self._conf['path']}
                 }
         params = js.s(credentials)
         return 'ZoomdataSDK.createClient(%s)' % (params)
@@ -176,8 +221,6 @@ class ZDVisualization(object):
         visualDiv = 'visual%s' % (str(self._renderCount))
         varKernel = js.var('kernel','IPython.notebook.kernel')
         varChart = js.var('chart',js.s(self._chart))
-        groupAccessor = js.var('groupAccessor',js.s(self._groupParams['attr']))
-        metricAccessor = js.var('metricAccessor',js.s(self._metricParams['attr']))
         visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'")')
         varFilters  = js.var('filters', '[]')
         #These two variables hold the selected metric and dimensions objects
@@ -185,12 +228,11 @@ class ZDVisualization(object):
         varGroup    = js.var(self._groupParams['name'], js.s(self._group))
         #The promise with the SDK connection code
         zdSDK = self.__connectionPromise()
-        #. Jquery onchange handlers for the filters
+        #. Jquery onchange handlers for the pickers
         metricJS = t.metricFilter % self._metricParams
         dimensionJS = t.groupFilter %  self._groupParams
         # wrap everything up as the require callback body
-        cb = tools + visLocation + varFilters + varChart \
-            + groupAccessor + metricAccessor + varMetric \
+        cb = tools + visLocation + varFilters + varChart + varMetric \
             + varGroup + zdSDK + metricJS + dimensionJS
         reqCallback = js.createFunc(params=deps, body=cb, anon=True)
         return 'require(%s,%s)' % (js.s(deps), reqCallback)
@@ -209,12 +251,12 @@ class ZDVisualization(object):
     def render(self):
         """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
         chart, source, etc. to render an specific visualization """
-        if(self._conf['headers']['Authorization']):
+        if(self._source):
             iframe = self.__getVisualization()[0]
             self._renderCount += 1
             return HTML(iframe)
         else:
-            print('You need to authenticate: ZD.auth("user","password")')
+            print('You need to specify a source: ZD.source = "Source Name"')
         # return HTML(html + jscode)
 
     def getHTML(self):
@@ -269,17 +311,6 @@ class ZDVisualization(object):
         # self._paths = value
 
     @property
-    def appConfig(self):
-        """
-        Dictionary: The main configuration for the ZD object. Allows to scpecify server, port, etc. 
-        """
-        return self._appConfig
-
-    @appConfig.setter
-    def appConfig(self, value):
-        self._appConfig = value
-
-    @property
     def query(self):
         """
         Dictionary. Allows to manually modify the query used to fecth data from ZD. 
@@ -289,15 +320,6 @@ class ZDVisualization(object):
     @query.setter
     def query(self, value):
         self._query = value
-
-    @property
-    def credentials(self):
-        """ String: The credentials to use an specific source """
-        return self._credentials
-
-    @credentials.setter
-    def credentials(self, value):
-        self._credentials = value
 
     @property
     def source(self):
@@ -311,24 +333,26 @@ class ZDVisualization(object):
             self._credentials = self._sourceCredentials[value]
             self._source = value
         else:
-            http = urllib3.PoolManager()
-            service = '/service/sources/key?source='+value.replace(' ','+')
-            url = 'https://%s:%s%s' % (self._appConfig['host'], self._appConfig['port'], self._appConfig['path'])
-            r = http.request('GET', url+service ,headers=self._conf['headers'])
-            resp = json.loads(r.data.decode('ascii'))
-            failed = False
-            if resp.get("error", False):
-                failed = True
-                print (r.data)
-            if resp.get("details", False):
-                failed = True
-                print ("Incorrect source name")
-            if not failed:
-                self._credentials = resp['id']
-                self._source = value
-                self._sourceCredentials.update({value: resp['id']})
-                with open('data/sources.json', 'w') as sc:
-                    json.dump(self._sourceCredentials, sc)
+            if(self._conf['headers']['Authorization']):
+                service = '/service/sources/key?source='+value.replace(' ','+')
+                url = 'https://%s:%s%s' % (self._conf['host'], self._conf['port'], self._conf['path'])
+                r = http.request('GET', url+service ,headers=self._conf['headers'])
+                resp = json.loads(r.data.decode('ascii'))
+                failed = False
+                if resp.get("error", False):
+                    failed = True
+                    print (r.data)
+                if resp.get("details", False):
+                    failed = True
+                    print ("Incorrect source name")
+                if not failed:
+                    self._credentials = resp['id']
+                    self._source = value
+                    self._sourceCredentials.update({value: resp['id']})
+                    with open('data/sources.json', 'w') as sc:
+                        json.dump(self._sourceCredentials, sc)
+            else:
+                print('You need to authenticate: ZD.auth("user","password")')
 
     @property
     def variables(self):
@@ -356,30 +380,6 @@ class ZDVisualization(object):
     @group.setter
     def group(self, value):
         self._group = value
-
-    # @property
-    # def filters(self):
-        # return self._filters
-
-    # @filters.setter
-    # def filters(self, value):
-        # self._filters = value
-
-    # @property
-    # def metricParams(self):
-        # return self._metricParams
-
-    # @metricParams.setter
-    # def metricParams(self, value):
-        # self._metricParams = value
-
-    # @property
-    # def groupParams(self):
-        # return self._groupParams
-
-    # @groupParams.setter
-    # def groupParams(self, value):
-        # self._groupParams = value
 
     @property
     def conf(self):
