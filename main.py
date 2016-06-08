@@ -1,3 +1,3 @@
 #/usr/bin/python3
-from .visualization import ZDVisualization
+from .src import ZDVisualization
 ZD = ZDVisualization()

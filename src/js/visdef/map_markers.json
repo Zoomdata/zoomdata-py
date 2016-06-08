@@ -1,0 +1,27 @@
+{
+  "visId": "",
+  "name": "Map: Markers",
+  "type": "MAP_LAT_LONG",
+  "enabled": true,
+  "source": {
+    "variables": {
+      "Tile Provider API Key": "",
+      "Chart Name": "",
+      "Max Zoom": 18,
+      "Chart Description": "",
+      "Start Zoom": 3,
+      "Lat/Long": "",
+      "Tile Provider": "MapQuest (no API key required)"
+    },
+    "sourceId": "5756dae7e4b077438300024a",
+    "textSearchEnabled": false,
+    "playbackMode": false,
+    "live": false,
+    "sparkIt": false
+  },
+  "owner": "SOURCE",
+  "controlsCfg": {
+    "timeControlCfg": {},
+    "playerControlCfg": {}
+  }
+}
