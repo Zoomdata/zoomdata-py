@@ -15,7 +15,6 @@ config = {
         'mongoServer': 'pubsdk.zoomdata.com', 
         'mongoPort': 27017,
         'mongoSchema': 'zoom',
-        "accountID": '56e9669ae4b03818a87e452c'
     }
 
 # ============ VISUALIZATION =============================

@@ -30,16 +30,18 @@ class ZDVisualization(object):
     def __init__(self):
         """ To ensure maximum flexibility for the visualization configuration
         here must be setted all values that may change """
+
         #Main configurations
         self._conf = config
         protocol = 'https' if config['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, config['host'], config['port'], config['path'])
-        self._sourceCredentials = {}
+        self._source_credentials = {}
+        self._account = ''
         if os.path.exists('data/sources.json'):
             with open('data/sources.json','r') as sc:
-                self._sourceCredentials = json.load(sc)
+                self._source_credentials = json.load(sc)
 
-        #Visualization
+        #Visualization attrs
         self.connResp = {}
         self._width = 800
         self._height = 400
@@ -47,17 +49,17 @@ class ZDVisualization(object):
         self._paths = paths
         self._query = queryConfig
         self._credentials = ''  # This is the key to get the source key to get the visualization
-        self._source_obj_credentials = '' # This is the source id to get the source definition
-        self.__source_charts = [] # Active visualizations for the current source
-        self.__allowedVisuals = [] # All the visualizations names allowed by zoomdata
+        self._source_id = '' # This is the source id to get the source definition
+        self._source_charts = [] # Active visualizations for the current source
+        self._allowed_visuals = [] # All the visualizations names allowed by zoomdata
         self._source = ''
         self._chart = chart
         self._variables = {}
         self._metric = metric
         self._group = groups
         self._filters = []
-        self._metricParams = metricParams
-        self._groupParams = groupParams
+        self._metric_params = metricParams
+        self._group_params = groupParams
 
         #Attrs for new source/collection creation
         self._connReq = connReq
@@ -70,6 +72,8 @@ class ZDVisualization(object):
         self._connReq['mongo']['created']['by']['username'] = user
         self._sourceReq['created']['by']['username'] = user
         self._conf['headers']['Authorization'] = key
+        # Get the account
+        self._account = rest.getUserAccount(self._serverURL, self._conf['headers'], user)
 
     def __createMongoCollection(self, name, df, connName):
         """ Creates a MongoDB collection """
@@ -84,7 +88,7 @@ class ZDVisualization(object):
                 print('collection created on db')
             print('creating data source using collection '+name+'...')
             return rest.createSource(self._serverURL, self._conf['headers'], \
-                                     self._conf['accountID'], name, connName, 
+                                     self._account, name, connName, 
                                      self._connReq, self._sourceReq)
         except ImportError:
             print ('To create mongo collections you must have the pymongo module installed')
@@ -112,9 +116,9 @@ class ZDVisualization(object):
             print('You need to authenticate: ZD.auth("user","password")')
 
     def listSources(self):
-        """ List the availables sources for the account specified in ZD.conf["accountID"] """
+        """ List the availables sources for the account"""
         if(self._conf['headers']['Authorization']):
-            rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._conf['accountID'])
+            rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._account)
         else:
             print('You need to authenticate: ZD.auth("user","password")')
             
@@ -131,8 +135,8 @@ class ZDVisualization(object):
 
     def __getPickers(self):
         opt = t.optionFmt % ('','Select option')
-        dim = t.selectFmt % ('Dimension', self._groupParams['name'], opt)
-        met = t.selectFmt % ('Metric', self._metricParams['name'], opt)
+        dim = t.selectFmt % ('Dimension', self._group_params['name'], opt)
+        met = t.selectFmt % ('Metric', self._metric_params['name'], opt)
         return t.divFilters % (dim + met)
 
     def __createClient(self):
@@ -163,7 +167,7 @@ class ZDVisualization(object):
         # The function .done is where the Thread object is created
         # and the specific data such as groups, variables, parameters,
         # etc for the specific visualization being loaded
-        doneBody = t.doneBody % {'met': self._metricParams['name'], 'dim': self._groupParams['name'] }
+        doneBody = t.doneBody % {'met': self._metric_params['name'], 'dim': self._group_params['name'] }
         done = '.done(%s);' % (js.createFunc(params='result',body=doneBody, anon=True))
         p = 'client.visualize(%s)%s' % (p, done)
         then1 = '.then(%s);' % (js.createFunc(params='client',body=p, anon=True))
@@ -178,13 +182,13 @@ class ZDVisualization(object):
         visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'")')
         varFilters  = js.var('filters', '[]')
         #These two variables hold the selected metric and dimensions objects
-        varMetric   = js.var(self._metricParams['name'], js.s(self._metric))
-        varGroup    = js.var(self._groupParams['name'], js.s(self._group))
+        varMetric   = js.var(self._metric_params['name'], js.s(self._metric))
+        varGroup    = js.var(self._group_params['name'], js.s(self._group))
         #The promise with the SDK connection code
         zdSDK = self.__connectionPromise()
         #. Jquery onchange handlers for the pickers
-        metricJS = t.metricFilter % self._metricParams
-        dimensionJS = t.groupFilter %  self._groupParams
+        metricJS = t.metricFilter % self._metric_params
+        dimensionJS = t.groupFilter %  self._group_params
         # wrap everything up as the require callback body
         cb = tools + visLocation + varFilters + varChart + varMetric \
             + varGroup + zdSDK + metricJS + dimensionJS
@@ -233,18 +237,18 @@ class ZDVisualization(object):
             # 1. First get the ID of the specific visualization
             if self._credentials:
                 print('Checking allowed chart types...')
-                if not (self.__allowedVisuals):
-                    self.__allowedVisuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
-                visualsNames = [v['name'] for v in self.__allowedVisuals]
+                if not (self._allowed_visuals):
+                    self._allowed_visuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
+                visualsNames = [v['name'] for v in self._allowed_visuals]
                 if name not in visualsNames:
                     print('Visualization type not found or not configured. Supported visualizations are:')
                     print('\n'.join(visualsNames))
                 else:
-                    visId = [v['id'] for v in self.__allowedVisuals if v['name'] == name]
+                    visId = [v['id'] for v in self._allowed_visuals if v['name'] == name]
                     result = vd.setMapMarkers(visId[0], definition, self._serverURL, \
-                                                self._conf['headers'], self._source_obj_credentials)
+                                                self._conf['headers'], self._source_id)
                     if result:
-                        self.__source_charts.append(name)
+                        self._source_charts.append(name)
             else:
                 print('You must define a source before setting a new visualization')
         else:
@@ -266,11 +270,11 @@ class ZDVisualization(object):
             if not self._source:
                 print('You need to define a source before setting the chart')
             else:
-                if not (self.__allowedVisuals):
-                    self.__allowedVisuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
-                visualsNames = [v['name'] for v in self.__allowedVisuals]
+                if not (self._allowed_visuals):
+                    self._allowed_visuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
+                visualsNames = [v['name'] for v in self._allowed_visuals]
                 if value in visualsNames: # If is an allowed visualization type
-                    if value in self.__source_charts: # If is an active visualization for the source
+                    if value in self._source_charts: # If is an active visualization for the source
                         self._chart = value
                     else:
                         print('Chart type not configured, to configure it use ZD.setVisualization method')
@@ -325,36 +329,26 @@ class ZDVisualization(object):
     @source.setter
     def source(self, value):
         credentials = ''
-        if self._sourceCredentials.get(value, False):
-            self._credentials = self._sourceCredentials[value][0]
-            self._source_obj_credentials = self._sourceCredentials[value][1]
+        if self._source_credentials.get(value, False):
+            self._credentials = self._source_credentials[value][0]
+            self._source_id = self._source_credentials[value][1]
             self._source = value
-            if not self.__source_charts:
-                vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_obj_credentials)
-                self.__source_charts = [v['name'] for v in vis['visualizations']]
+            if not self._source_charts:
+                vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+                self._source_charts = [v['name'] for v in vis['visualizations']]
         else:
             if(self._conf['headers']['Authorization']):
-                service = '/service/sources/key?source='+value.replace(' ','+')
-                url = 'https://%s:%s%s' % (self._conf['host'], self._conf['port'], self._conf['path'])
-                r = http.request('GET', url+service ,headers=self._conf['headers'])
-                resp = json.loads(data(r))
-                failed = False
-                if resp.get("error", False):
-                    failed = True
-                    print (r.data)
-                if resp.get("details", False):
-                    failed = True
-                    print ("Incorrect source name")
-                if not failed:
-                    self._credentials = resp['id']
-                    self._source_obj_credentials = resp['objectIds'][0] # TODO: Check on this because this is a list of ?
+                #This will change once oauth is implemented, cuz the key won't be needed anymore
+                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], value)
+                if self._credentials:
                     self._source = value
-                    self._sourceCredentials.update({value: [ self._credentials, self._source_obj_credentials ]})
-                    if not self.__source_charts:
-                        vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_obj_credentials)
-                        self.__source_charts = [v['name'] for v in vis['visualizations']]
+                    self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, value)
+                    self._source_credentials.update({value: [ self._credentials, self._source_id ]})
+                    if not self._source_charts:
+                        vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+                        self._source_charts = [v['name'] for v in vis['visualizations']]
                     with open('data/sources.json', 'w') as sc:
-                        json.dump(self._sourceCredentials, sc)
+                        json.dump(self._source_credentials, sc)
             else:
                 print('You need to authenticate: ZD.auth("user","password")')
 

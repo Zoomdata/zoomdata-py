@@ -35,16 +35,14 @@ class RestCalls(object):
         if connResponse:
             links = json.loads(connResponse)['links']
             url = False
-            for l in links:
-                if l['rel'] == 'sources':
-                    url = l['href']
+            url = [l['href'] for l in links if l['rel'] == 'sources']
             if url:
                 print('Good Url')
                 sourceReq['name'] = sourceName
                 sourceReq['sourceParameters']['collection']= sourceName;
                 body=json.dumps(sourceReq)
                 print('Creating source...')
-                r = http.request('POST', url, headers=headers, body=body)
+                r = http.request('POST', url[0], headers=headers, body=body)
                 if r.status in [200, 201]:
                     print('Source created')
                     return True
@@ -52,6 +50,15 @@ class RestCalls(object):
                     print(data(r))
         return False
 
+    def getUserAccount(self, url, headers, user):
+        service = '/api/users/username/'+user
+        r = http.request('GET', url+service ,headers=headers)
+        if r.status in [200]:
+            resp= json.loads(data(r))
+            href = [l['href'] for l in resp['links'] if l['rel'] == 'account']
+            # https://server:port/zoomdata/api/accounts/56e9669ae4b03818a87e452c
+            return href[0].split('/')[-1]
+        print(data(r))
 
     def getSourcesByAccount(self, url, headers, accountID):
         service = '/api/accounts/'+accountID+'/sources'
@@ -82,6 +89,28 @@ class RestCalls(object):
         r = http.request('GET', url+service, headers=headers)
         if r.status in [200]:
             return json.loads(data(r))
+        print(data(r))
+        return False
+
+    def getSourceKey(self, url, headers, sourceName):
+        # This method will be useless once oauth be implemented
+        service = '/service/sources/key?source='+sourceName.replace(' ','+')
+        r = http.request('GET', url+service ,headers=headers)
+        if r.status in [200]:
+            resp = json.loads(data(r))
+            return resp['id']
+        print(data(r))
+        return False
+
+    def getSourceID(self, url, headers, accountID, sourceName):
+        # https://pubsdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/name/Ticket%20Sales
+        service = '/api/accounts/'+accountID+'/sources/name/'+sourceName.replace(' ','%20')
+        r = http.request('GET', url+service, headers=headers)
+        if r.status in [200]:
+            resp= json.loads(data(r))
+            href = [l['href'] for l in resp['links'] if l['rel'] == 'self']
+            # https://server:port/zoomdata/api/sources/
+            return href[0].split('/')[-1]
         print(data(r))
         return False
 
