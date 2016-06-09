@@ -237,6 +237,48 @@ class ZDVisualization(object):
         except ImportError:
             print ('Modules jsbeautifier and beautifulsoup4 are required for this feature')
 
+    def getConnectionData(self, sourceName=False):
+        """
+        Return the connection parameters for a given source. If not source is specified the parameters
+        of the current source will be shown
+        """
+        source_id = self._source_id
+        if sourceName:
+            source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
+        if source_id:
+            print('Fetching source parameters...')
+            vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
+            if vis:
+                print('')
+                print('mongo host: '+self._conf['mongoServer'])
+                print('mongo port: '+ str(self._conf['mongoPort']))
+                for key in vis['storageConfiguration']:
+                    print(key+': '+str(vis['storageConfiguration'][key]))
+        else:
+            print('You must specify a source')
+
+    def sourceFields(self, sourceName=False, conf={}):
+        """
+        Retrieve or modify the fields for a given source. It takes to optional parameters:
+            - sourceName: String: Set the source from where fields will be fetched/modified. If no source is specified
+                          the current source will be used
+            - configDict: Dictionary: The new configuration for the fields: ex: {'field_name':'new_TYPE'}, if no conf
+                          is specified, the current fields conf will be retrieved.
+        """
+        source_id = self._source_id
+        if sourceName:
+            source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
+        if source_id:
+            print('Fetching source fields...')
+            vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
+            if vis:
+                print('')
+                for f in vis['objectFields']:
+                    print(f['name']+': '+f['type'])
+        else:
+            print('You must specify a source')
+
+
     #====== SET CHART TYPES FOR A VISUALIZATION IF IT DOES NOT HAVE IT ==========
     def setVisualization(self, name, definition={}):
         if(self._conf['headers']['Authorization']):
