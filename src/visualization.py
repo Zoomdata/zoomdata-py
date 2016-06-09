@@ -244,6 +244,7 @@ class ZDVisualization(object):
         """
         source_id = self._source_id
         if sourceName:
+            print('Retrieving specified source...')
             source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
         if source_id:
             print('Fetching source parameters...')
@@ -262,19 +263,33 @@ class ZDVisualization(object):
         Retrieve or modify the fields for a given source. It takes to optional parameters:
             - sourceName: String: Set the source from where fields will be fetched/modified. If no source is specified
                           the current source will be used
-            - configDict: Dictionary: The new configuration for the fields: ex: {'field_name':'new_TYPE'}, if no conf
-                          is specified, the current fields conf will be retrieved.
+            - conf: Dictionary: The new configuration for the fields using field name as key. Ex:
+                        {'field_name1':{'type':'new_type','visible':True, 'label':'New Label'}, {'field_name2':...}}}
+                        If no conf is specified, the current fields conf will be retrieved.
         """
         source_id = self._source_id
         if sourceName:
+            print('Retrieving specified source...')
             source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
         if source_id:
             print('Fetching source fields...')
             vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
-            if vis:
+            if vis and not conf: # Only print the attrs config. No update
                 print('')
                 for f in vis['objectFields']:
-                    print(f['name']+': '+f['type'])
+                    val = "%s: {'label':'%s', 'type':'%s', 'visible':%s }" \
+                            % (f['name'], f['label'], f['type'], f['visible'])
+                    print(val)
+            elif vis and conf: #Do not print, just update
+                fields = [f for f in conf.keys()]
+                for f in vis['objectFields']:
+                    if f['name'] in conf:
+                        for key in conf[f['name']].keys():
+                            if key in f: # Check if the key is in the original, to avoid inserting wrong keys
+                                f[key] = conf[f['name']][key]
+                print('Updating source fields...')
+                if(rest.updateSourceDefinition(self._serverURL, self._conf['headers'], source_id, vis)):
+                    print('Done')
         else:
             print('You must specify a source')
 
