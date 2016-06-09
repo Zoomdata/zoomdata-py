@@ -56,6 +56,7 @@ class ZDVisualization(object):
         self._chart = chart
         self._variables = {}
         self._metric = metric
+        self.test = ''
         self._group = groups
         self._filters = []
         self._metric_params = metricParams
@@ -135,8 +136,9 @@ class ZDVisualization(object):
 
     def __getPickers(self):
         opt = t.optionFmt % ('','Select option')
+        count = t.optionFmt % ('count','Count')
         dim = t.selectFmt % ('Dimension', self._group_params['name'], opt)
-        met = t.selectFmt % ('Metric', self._metric_params['name'], opt)
+        met = t.selectFmt % ('Metric', self._metric_params['name'], opt+count)
         return t.divFilters % (dim + met)
 
     def __createClient(self):
@@ -177,13 +179,17 @@ class ZDVisualization(object):
         """Wraps and render all the JS code inside the require module"""
         tools = self.__getJSTools()
         visualDiv = 'visual%s' % (str(self._renderCount))
-        varKernel = js.var('kernel','IPython.notebook.kernel')
         varChart = js.var('chart',js.s(self._chart))
         visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'")')
         varFilters  = js.var('filters', '[]')
+        # These vars hold the selected dataAccessor
+        varMetricAccessor  = js.var('metricAccessor', '""')
+        varGroupAccessor  = js.var('groupAccessor', '""')
         #These two variables hold the selected metric and dimensions objects
         varMetric   = js.var(self._metric_params['name'], js.s(self._metric))
         varGroup    = js.var(self._group_params['name'], js.s(self._group))
+        # The kernel variable to communicate python-js
+        varKernel   = js.var('kernel', 'Ipython.notebook.kernel')
         #The promise with the SDK connection code
         zdSDK = self.__connectionPromise()
         #. Jquery onchange handlers for the pickers

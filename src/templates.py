@@ -3,14 +3,17 @@ class Template(object):
     def __init__(self):
         # RequireJS CDN
         self.requirejs = '<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js"></script>'
+        self.jqueryjs = '<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>'
+        self.zdclientjs= '<script src="https://pubsdk.zoomdata.com:8443/zoomdata/sdk/2.0/zoomdata-client.js"></script>'
 
         #Iframe where everything will be rendered
-        self.iframe = """<iframe 
+        self.iframe = """
+                        <script type="text/javascript">var kernel = IPython.notebook.kernel</script>
+                        <iframe 
                             srcdoc='<div align="center">%s %s</div>' 
                             src='' 
                             width='%s' 
                             height='%s' 
-                            sandbox='allow-scripts' 
                             frameborder='0'>
                         </iframe> """ 
 
@@ -39,11 +42,19 @@ class Template(object):
                                 var accessorAttr = groupAccessor
                                 if(f.type == "ATTRIBUTE"){ //is a dimension
                                     %(groupVar)s.name = f.name
-                                    %(groupVar)s.sort.name = %(metricVar)s.name
-                                    %(groupVar)s.sort.metricFunc = %(metricVar)s.func
+                                    if(%(metricVar)s.name != "count"){
+                                        %(groupVar)s.sort.name = %(metricVar)s.name
+                                        %(groupVar)s.sort.metricFunc = %(metricVar)s.func
+                                    }
+                                    else{
+                                        %(groupVar)s.sort = {"name":"count","dir":"desc"}
+                                    }
                                 }
+                                console.group("Dimension")
                                 console.log("Group", name);
                                 console.log("groupAccessor", groupAccessor);
+                                console.log("group", %(groupVar)s);
+                                console.groupEnd()
                                 %(name)s.name = $( "#%(name)s option:selected" )[0].value;
                                 list = ["Donut","Packed","Scatter","Pie","Tree","Word"]
                                 var accessor = window.viz["dataAccessors"][groupAccessor];
@@ -62,8 +73,11 @@ class Template(object):
                                 if(f.type == "MONEY" || f.type == "NUMBER" || f.type == "INTEGER"){ //is a metric
                                     %(metricVar)s = { func: f.func.toLowerCase(), label: f.label, name: f.name, type: f.type }
                                 }
+                                console.group("Metric")
                                 console.log("Metric:", name);
                                 console.log("metricAccessor:", metricAccessor);
+                                console.log("metric", %(metricVar)s);
+                                console.groupEnd()
                                 %(name)s.name = $( "#%(name)s option:selected" )[0].value;
                                 var accessor = window.viz["dataAccessors"][metricAccessor];
                                 accessor.setMetric(%(params)s)
@@ -74,6 +88,13 @@ class Template(object):
         # must match with the id of the html filters drop-downs
         self.doneBody=''' window.viz = result;
                           console.log("Thread:", window.viz);
+                          console.log("Kernel:", parent.kernel);
+
+                          var aaaaa = {a:"Helloooouuu"}
+                          var command = "ZD.test = "+JSON.stringify(aaaaa);
+                          console.log("executing command "+command);
+                          parent.kernel.execute(command);
+
                           var accesorsKeys = getKeys(window.viz.dataAccessors);
                           console.log("Accesors keys", accesorsKeys);
                           var metricFlag = false;
