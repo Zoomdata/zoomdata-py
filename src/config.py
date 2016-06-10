@@ -23,16 +23,6 @@ metric = { "func": "sum", "label": "Actual Sales", "name": "price", "type": "MON
 groups = { "name": "usercity",
                    "limit": 40,
                    "sort": { "name":"price", "dir": "desc", "metricFunc":"sum" }}
-"""
-These values take care of the filters
-  name: The drop down ids, the variables names for metric and groups, and the selectors in jquery to 
-        get the values of the dropdowns
-  params: the parameters of the function. So far they match the key 'name'
-  NOTE: This configurations are not available for the user
-"""
-dim, met  = 'group', 'metric'
-metricParams = {'name': met, 'metricVar': met, 'groupVar': dim, 'params':met}
-groupParams  = {'name': dim, 'metricVar': met, 'groupVar': dim, 'params':dim}
 
 # ============== SOURCE =================================================
 connReq = { 
