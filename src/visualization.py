@@ -59,8 +59,6 @@ class ZDVisualization(object):
         self.test = ''
         self._group = groups
         self._filters = []
-        self._metric_params = metricParams
-        self._group_params = groupParams
 
         #Attrs for new source/collection creation
         self._connReq = connReq
@@ -136,10 +134,19 @@ class ZDVisualization(object):
 
     def __getPickers(self):
         opt = t.optionFmt % ('','Select option')
+
+        #Options for the metric operators picker
+        oper  = t.optionFmt % ('min','Min')
+        oper += t.optionFmt % ('max','Max')
+        oper += t.optionFmt % ('sum','Sum')
+        oper += t.optionFmt % ('avg','Avg')
+        #Include the count/volume in the metrics
         count = t.optionFmt % ('count','Count')
-        dim = t.selectFmt % ('Dimension', self._group_params['name'], opt)
-        met = t.selectFmt % ('Metric', self._metric_params['name'], opt+count)
-        return t.divFilters % (dim + met)
+
+        dim = t.selectFmt % ('Dimension', 'group', opt)
+        met = t.selectFmt % ('Metric', 'metric', opt+count)
+        func = t.selectFmt % ('Function', 'func' , opt+oper)
+        return t.divFilters % (dim + met + func)
 
     def __createClient(self):
         credentials = {
@@ -169,8 +176,7 @@ class ZDVisualization(object):
         # The function .done is where the Thread object is created
         # and the specific data such as groups, variables, parameters,
         # etc for the specific visualization being loaded
-        doneBody = t.doneBody % {'met': self._metric_params['name'], 'dim': self._group_params['name'] }
-        done = '.done(%s);' % (js.createFunc(params='result',body=doneBody, anon=True))
+        done = '.done(%s);' % (js.createFunc(params='result',body=t.doneBody, anon=True))
         p = 'client.visualize(%s)%s' % (p, done)
         then1 = '.then(%s);' % (js.createFunc(params='client',body=p, anon=True))
         return prom+then+then1
@@ -185,19 +191,22 @@ class ZDVisualization(object):
         # These vars hold the selected dataAccessor
         varMetricAccessor  = js.var('metricAccessor', '""')
         varGroupAccessor  = js.var('groupAccessor', '""')
+        # These var hold the selected metric operator 
+        varOperator = js.var('metricOp','""')
         #These two variables hold the selected metric and dimensions objects
-        varMetric   = js.var(self._metric_params['name'], js.s(self._metric))
-        varGroup    = js.var(self._group_params['name'], js.s(self._group))
+        varMetric   = js.var('metric', js.s(self._metric))
+        varGroup    = js.var('group', js.s(self._group))
         # The kernel variable to communicate python-js
         varKernel   = js.var('kernel', 'Ipython.notebook.kernel')
         #The promise with the SDK connection code
         zdSDK = self.__connectionPromise()
         #. Jquery onchange handlers for the pickers
-        metricJS = t.metricFilter % self._metric_params
-        dimensionJS = t.groupFilter %  self._group_params
+        metricJS = t.metricPicker 
+        dimensionJS = t.groupPicker 
+        functionJS = t.funcPicker 
         # wrap everything up as the require callback body
         cb = tools + visLocation + varFilters + varChart + varMetric \
-            + varGroup + zdSDK + metricJS + dimensionJS
+            + varGroup + varOperator + zdSDK + metricJS + dimensionJS + functionJS
         reqCallback = js.createFunc(params=deps, body=cb, anon=True)
         return 'require(%s,%s)' % (js.s(deps), reqCallback)
 

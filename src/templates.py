@@ -36,51 +36,88 @@ class Template(object):
         # in the file config.js, the can be modified later by the user changing the respective
         # ZD attrs
         # Drop-down for the dimension
-        self.groupFilter= ''' $("#%(name)s").change(function() {
-                                var name = $( "#%(name)s option:selected" )[0].value;
+        self.groupPicker = ''' $("#group").change(function() {
+                                var name = $( "#group option:selected" )[0].value;
+                                var funct = $( "#func option:selected" )[0].value;
                                 var f = getObj(name, filters)
                                 var accessorAttr = groupAccessor
                                 if(f.type == "ATTRIBUTE"){ //is a dimension
-                                    %(groupVar)s.name = f.name
-                                    if(%(metricVar)s.name != "count"){
-                                        %(groupVar)s.sort.name = %(metricVar)s.name
-                                        %(groupVar)s.sort.metricFunc = %(metricVar)s.func
+                                    group.name = f.name
+                                    if(metric.name != "count"){
+                                        group.sort.name = metric.name
+                                        group.sort.metricFunc = metric.func
+                                        if(funct != ""){
+                                            group.sort.metricFunc = funct 
+                                        }
                                     }
                                     else{
-                                        %(groupVar)s.sort = {"name":"count","dir":"desc"}
+                                        group.sort = {"name":"count","dir":"desc"}
                                     }
                                 }
-                                console.group("Dimension")
-                                console.log("Group", name);
-                                console.log("groupAccessor", groupAccessor);
-                                console.log("group", %(groupVar)s);
+                                console.group("Group By")
+                                console.log(name);
+                                console.log("Accessor:", groupAccessor);
+                                console.log(group);
                                 console.groupEnd()
-                                %(name)s.name = $( "#%(name)s option:selected" )[0].value;
+                                group.name = $( "#group option:selected" )[0].value;
                                 list = ["Donut","Packed","Scatter","Pie","Tree","Word"]
                                 var accessor = window.viz["dataAccessors"][groupAccessor];
                                 if(inList(list, chart)){
-                                    accessor.setGroup(%(params)s)
+                                    accessor.setGroup(group)
                                 }
                                 else{
-                                    accessor.resetGroups([%(params)s]);
+                                    accessor.resetGroups([group]);
                                 }
                             });'''
 
         # Drop-down for the metric
-        self.metricFilter= ''' $("#%(name)s").change(function() {
-                                var name = $( "#%(name)s option:selected" )[0].value;
+        self.metricPicker = ''' $("#metric").change(function() {
+                                var name = $( "#metric option:selected" )[0].value;
+                                var funct = $( "#func option:selected" )[0].value;
                                 var f = getObj(name, filters)
                                 if(f.type == "MONEY" || f.type == "NUMBER" || f.type == "INTEGER"){ //is a metric
-                                    %(metricVar)s = { func: f.func.toLowerCase(), label: f.label, name: f.name, type: f.type }
+                                    metric = { func: f.func.toLowerCase(), label: f.label, name: f.name, type: f.type }
+                                    if(funct != ""){
+                                        metric.func = funct;
+                                    }
                                 }
                                 console.group("Metric")
-                                console.log("Metric:", name);
-                                console.log("metricAccessor:", metricAccessor);
-                                console.log("metric", %(metricVar)s);
+                                console.log(name);
+                                console.log("accessor:", metricAccessor);
+                                console.log(metric);
                                 console.groupEnd()
-                                %(name)s.name = $( "#%(name)s option:selected" )[0].value;
+                                metric.name = $( "#metric option:selected" )[0].value;
                                 var accessor = window.viz["dataAccessors"][metricAccessor];
-                                accessor.setMetric(%(params)s)
+                                accessor.setMetric(metric)
+                            });'''
+
+        self.funcPicker = ''' $("#func").change(function() {
+                                var funct = $( "#func option:selected" )[0].value;
+                                if(funct == ""){
+                                    //If no operation, set the default operation of the metric
+                                    var f = getObj(metric.name, filters)
+                                    metric.func = f.func.toLowerCase()
+                                    group.sort.metricFunc = metric.func.toLowerCase()
+                                }
+                                else{
+                                    metric.func = funct;
+                                    group.sort.metricFunc = funct;
+                                }
+                                console.group("Function")
+                                console.log(funct);
+                                console.log("met", metric);
+                                console.log("group", group);
+                                console.groupEnd()
+                                var mAccessor = window.viz["dataAccessors"][metricAccessor];
+                                var gAccessor = window.viz["dataAccessors"][groupAccessor];
+                                mAccessor.setMetric(metric)
+                                list = ["Donut","Packed","Scatter","Pie","Tree","Word"]
+                                if(inList(list, chart)){
+                                    gAccessor.setGroup(group)
+                                }
+                                else{
+                                    gAccessor.resetGroups([group]);
+                                }
                             });'''
 
         # The body of .done callback. Used in the ZD __wrapper method. This function gets the result
@@ -89,11 +126,6 @@ class Template(object):
         self.doneBody=''' window.viz = result;
                           console.log("Thread:", window.viz);
                           console.log("Kernel:", parent.kernel);
-
-                          var aaaaa = {a:"Helloooouuu"}
-                          var command = "ZD.test = "+JSON.stringify(aaaaa);
-                          console.log("executing command "+command);
-                          parent.kernel.execute(command);
 
                           var accesorsKeys = getKeys(window.viz.dataAccessors);
                           console.log("Accesors keys", accesorsKeys);
@@ -111,8 +143,8 @@ class Template(object):
                                     }
                                 }
                            });
-                          var metricSelect = $("#%(met)s");
-                          var dimensionSelect = $("#%(dim)s");
+                          var metricSelect = $("#metric");
+                          var dimensionSelect = $("#group");
                           gFlag = false;
                           mFlag = false;
                           $.each(window.viz.source.objectFields, function() {
@@ -120,7 +152,7 @@ class Template(object):
                               if(this.visible){
                                   if(this.type == "NUMBER" || this.type == "MONEY" || this.type == "INTEGER"){
                                        if(!mFlag){
-                                            %(met)s = { func: this.func.toLowerCase(), 
+                                            metric = { func: this.func.toLowerCase(), 
                                                         label:this.label, 
                                                         name: this.name, 
                                                         type: this.type }
@@ -129,9 +161,9 @@ class Template(object):
                                        metricSelect.append($("<option />").val(this.name).text(this.label));
                                   }
                                   else if(this.type == "ATTRIBUTE") { 
-                                      %(dim)s.name = this.name
-                                      %(dim)s.sort.name = %(met)s.name
-                                      %(dim)s.sort.metricFunc = %(met)s.func
+                                      group.name = this.name
+                                      group.sort.name = metric.name
+                                      group.sort.metricFunc = metric.func
                                       dimensionSelect.append($("<option />").val(this.name).text(this.label)) 
                                   }
                               }
