@@ -23,7 +23,7 @@ class Template(object):
         self.scriptTags = '<script type="text/javascript">%s %s</script>' 
 
         # Select and option string formatters
-        self.selectFmt = '''<span>%s</span>
+        self.selectFmt = '''<span id="%s">%s</span>
                             <select id="%s" style="margin-right:20px; margin-left:5px">%s<select>'''
         self.optionFmt = '<option value="%s">%s</option>'
 
@@ -71,23 +71,39 @@ class Template(object):
                             });'''
 
         # Drop-down for the metric
-        self.metricPicker = ''' $("#metric").change(function() {
-                                var name = $( "#metric option:selected" )[0].value;
-                                var funct = $( "#func option:selected" )[0].value;
+        # THe id of the html select is passed dinamically because there may be 2 metrics at the same
+        # time for specific chart types
+        self.metricPicker = ''' $("#%(metID)s").change(function() {
+                                var picker = $("#%(metID)s").attr("id") //Need to know what metric is changed 1 or 2
+                                var acc = metricAccessor;
+                                if(picker.indexOf("2") > -1){
+                                   acc = "Y2 Axis" //TODO: This must be setted dinamically
+                                }
+                                var name = $( "#%(metID)s" ).val();
+                                var funct = $( "#func" ).val();
                                 var f = getObj(name, filters)
                                 if(f.type == "MONEY" || f.type == "NUMBER" || f.type == "INTEGER"){ //is a metric
                                     metric = { func: f.func.toLowerCase(), label: f.label, name: f.name, type: f.type }
                                     if(funct != ""){
                                         metric.func = funct;
                                     }
+                                    variables[acc] = metric.name;
+                                }
+                                if(name == "count"){  //If the metric is count, the operator must be hidden
+                                    $("#func").hide();
+                                    $("#op-span").hide();
+                                }
+                                else{
+                                    $("#func").show();
+                                    $("#op-span").show();
                                 }
                                 console.group("Metric")
                                 console.log(name);
-                                console.log("accessor:", metricAccessor);
+                                console.log("accessor:", acc);
                                 console.log(metric);
                                 console.groupEnd()
-                                metric.name = $( "#metric option:selected" )[0].value;
-                                var accessor = window.viz["dataAccessors"][metricAccessor];
+                                metric.name = name;
+                                var accessor = window.viz["dataAccessors"][acc];
                                 accessor.setMetric(metric)
                             });'''
 
@@ -125,8 +141,6 @@ class Template(object):
         # must match with the id of the html filters drop-downs
         self.doneBody=''' window.viz = result;
                           console.log("Thread:", window.viz);
-                          console.log("Kernel:", parent.kernel);
-
                           var accesorsKeys = getKeys(window.viz.dataAccessors);
                           console.log("Accesors keys", accesorsKeys);
                           var metricFlag = false;
@@ -134,16 +148,18 @@ class Template(object):
                                 if (k.indexOf("roup") > -1) {
                                     groupAccessor = k;
                                 } else { //Metric, Size and Colors are metrics
-                                    if (!metricFlag) {
+                                    if (!metricFlag) { 
                                         metricAccessor = k;
                                         metricFlag = true;
                                     }
+                                    //When metricFlag is true, it means that a metric is setted as accessor
                                     if (k.indexOf("etric") > -1) {
                                         metricAccessor = k;
                                     }
                                 }
                            });
-                          var metricSelect = $("#metric");
+                          var metricSelect1 = $("#metric1");
+                          var metricSelect2 = $("#metric2");
                           var dimensionSelect = $("#group");
                           gFlag = false;
                           mFlag = false;
@@ -158,7 +174,8 @@ class Template(object):
                                                         type: this.type }
                                              mFlag = true; //Optimization purposes
                                        }
-                                       metricSelect.append($("<option />").val(this.name).text(this.label));
+                                       metricSelect1.append($("<option />").val(this.name).text(this.label));
+                                       metricSelect2.append($("<option />").val(this.name).text(this.label));
                                   }
                                   else if(this.type == "ATTRIBUTE") { 
                                       group.name = this.name

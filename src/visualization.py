@@ -41,6 +41,8 @@ class ZDVisualization(object):
             with open('data/sources.json','r') as sc:
                 self._source_credentials = json.load(sc)
 
+        self.notebook = ''
+
         #Visualization attrs
         self.connResp = {}
         self._width = 800
@@ -94,7 +96,6 @@ class ZDVisualization(object):
         except Exception as e:
             print('Error: '+str(e))
 
-
     def createSource(self, sourceName, dataframe=False, handler='mongo', connName=False): 
         """Creates a new Zoomdata collection using the specified parameters:
                 Parameters:
@@ -143,10 +144,15 @@ class ZDVisualization(object):
         #Include the count/volume in the metrics
         count = t.optionFmt % ('count','Count')
 
-        dim = t.selectFmt % ('Dimension', 'group', opt)
-        met = t.selectFmt % ('Metric', 'metric', opt+count)
-        func = t.selectFmt % ('Function', 'func' , opt+oper)
-        return t.divFilters % (dim + met + func)
+        pickers = ""
+        if self._chart not in ["Line & Bars Trend"]:
+            pickers = t.selectFmt % ('grp-span','Dimension', 'group', opt)
+            pickers += t.selectFmt % ('met-span','Metric', 'metric1', opt+count)
+        else:
+            pickers = t.selectFmt % ('met-span','Y1 Axis', 'metric1', opt+count)
+            pickers += t.selectFmt % ('met-span','Y2 Axis', 'metric2', opt+count)
+        pickers += t.selectFmt % ('op-span','Operation', 'func' , opt+oper)
+        return t.divFilters % (pickers)
 
     def __createClient(self):
         credentials = {
@@ -168,16 +174,18 @@ class ZDVisualization(object):
         visualconf = {'element':'%s', 'config': self._query}
         visualconf.update( { 'source': {'name': self._source},
                              'visualization': self._chart,
-                             'variables': self._variables
+                             'variables': '%s' #Initialization variables
                            })
         p = js.s(visualconf)
-        p = js.setVars(p, 'visLocation') #set the element for echarts rendering
+        p = js.setVars(p, ('visLocation','variables')) #set the element for echarts rendering
 
         # The function .done is where the Thread object is created
         # and the specific data such as groups, variables, parameters,
         # etc for the specific visualization being loaded
         done = '.done(%s);' % (js.createFunc(params='result',body=t.doneBody, anon=True))
+        test = 'console.log("Heeey Im here");'
         p = 'client.visualize(%s)%s' % (p, done)
+        p = test + p
         then1 = '.then(%s);' % (js.createFunc(params='client',body=p, anon=True))
         return prom+then+then1
 
@@ -188,6 +196,7 @@ class ZDVisualization(object):
         varChart = js.var('chart',js.s(self._chart))
         visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'")')
         varFilters  = js.var('filters', '[]')
+        varVariables= js.var('variables', js.s(self._variables))
         # These vars hold the selected dataAccessor
         varMetricAccessor  = js.var('metricAccessor', '""')
         varGroupAccessor  = js.var('groupAccessor', '""')
@@ -201,12 +210,17 @@ class ZDVisualization(object):
         #The promise with the SDK connection code
         zdSDK = self.__connectionPromise()
         #. Jquery onchange handlers for the pickers
-        metricJS = t.metricPicker 
-        dimensionJS = t.groupPicker 
-        functionJS = t.funcPicker 
+        pickersJS = ""
+        if self._chart not in ["Line & Bars Trend"]:
+            pickersJS = t.groupPicker 
+            pickersJS += t.metricPicker % {'metID':'metric1'}
+        else:
+            pickersJS = t.metricPicker % {'metID':'metric1'}
+            pickersJS += t.metricPicker % {'metID': 'metric2'}
+        pickersJS += t.funcPicker 
         # wrap everything up as the require callback body
-        cb = tools + visLocation + varFilters + varChart + varMetric \
-            + varGroup + varOperator + zdSDK + metricJS + dimensionJS + functionJS
+        cb = tools + visLocation + varVariables + varFilters + varChart + varMetric \
+            + varGroup + varOperator + zdSDK + pickersJS
         reqCallback = js.createFunc(params=deps, body=cb, anon=True)
         return 'require(%s,%s)' % (js.s(deps), reqCallback)
 
@@ -326,6 +340,17 @@ class ZDVisualization(object):
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
+    def __getNotebookPath(self):
+        jscode = """
+                <script type='text/javascript'>
+                var nb = IPython.notebook;
+                var kernel = IPython.notebook.kernel;
+                var command = "ZD.notebook = '" + nb.base_url + nb.notebook_path + "'";
+                kernel.execute(command);
+                </script>
+        """
+        return HTML(jscode)
+
             
     #====== PROPERTIES (DEFINED THIS WAY TO PROVIDE DOCSTRING) ===============
     @property
@@ -401,26 +426,18 @@ class ZDVisualization(object):
     @source.setter
     def source(self, value):
         credentials = ''
-        if self._source_credentials.get(value, False):
-            self._credentials = self._source_credentials[value][0]
-            self._source_id = self._source_credentials[value][1]
-            self._source = value
-            if not self._source_charts:
-                vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
-                self._source_charts = [v['name'] for v in vis['visualizations']]
-        else:
-            if(self._conf['headers']['Authorization']):
-                #This will change once oauth is implemented, cuz the key won't be needed anymore
-                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], value)
-                if self._credentials:
-                    self._source = value
-                    self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, value)
-                    self._source_credentials.update({value: [ self._credentials, self._source_id ]})
-                    if not self._source_charts:
-                        vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
-                        self._source_charts = [v['name'] for v in vis['visualizations']]
-                    with open('data/sources.json', 'w') as sc:
-                        json.dump(self._source_credentials, sc)
+        if(self._conf['headers']['Authorization']):
+            #This will change once oauth is implemented, cuz the key won't be needed anymore
+            self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], value)
+            if self._credentials:
+                self._source = value
+                self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, value)
+                self._source_credentials.update({value: [ self._credentials, self._source_id ]})
+                if not self._source_charts:
+                    vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+                    self._source_charts = [v['name'] for v in vis['visualizations']]
+                with open('data/sources.json', 'w') as sc:
+                    json.dump(self._source_credentials, sc)
             else:
                 print('You need to authenticate: ZD.auth("user","password")')
 
