@@ -4,6 +4,8 @@ import json
 rest = RestCalls()
 
 class VisDefinition(object):
+    """ VisDefinition creates or updates new visual definitions for a given
+    source """
 
     def setMapMarkers(self, visId, definition, url, headers, obj_credentials):
         path = os.path.dirname(os.path.realpath(__file__))
