@@ -185,7 +185,6 @@ class ZDVisualization(object):
         done = '.done(%s);' % (js.createFunc(params='result',body=t.doneBody, anon=True))
         test = 'console.log("Heeey Im here");'
         p = 'client.visualize(%s)%s' % (p, done)
-        p = test + p
         then1 = '.then(%s);' % (js.createFunc(params='client',body=p, anon=True))
         return prom+then+then1
 
@@ -426,18 +425,26 @@ class ZDVisualization(object):
     @source.setter
     def source(self, value):
         credentials = ''
-        if(self._conf['headers']['Authorization']):
-            #This will change once oauth is implemented, cuz the key won't be needed anymore
-            self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], value)
-            if self._credentials:
-                self._source = value
-                self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, value)
-                self._source_credentials.update({value: [ self._credentials, self._source_id ]})
-                if not self._source_charts:
-                    vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
-                    self._source_charts = [v['name'] for v in vis['visualizations']]
-                with open('data/sources.json', 'w') as sc:
-                    json.dump(self._source_credentials, sc)
+        if self._source_credentials.get(value, False): # If the source is allready registered
+            self._credentials = self._source_credentials[value][0] # The key of the source
+            self._source_id = self._source_credentials[value][1] # The id of the source
+            self._source = value
+            if not self._source_charts: #Get the active visualizations (charts) for that source
+                vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+                self._source_charts = [v['name'] for v in vis['visualizations']]
+        else:
+            if(self._conf['headers']['Authorization']):
+                #This will change once oauth is implemented, cuz the key won't be needed anymore
+                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], value)
+                if self._credentials:
+                    self._source = value
+                    self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, value)
+                    self._source_credentials.update({value: [ self._credentials, self._source_id ]})
+                    if not self._source_charts:
+                        vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+                        self._source_charts = [v['name'] for v in vis['visualizations']]
+                    with open('data/sources.json', 'w') as sc:
+                        json.dump(self._source_credentials, sc)
             else:
                 print('You need to authenticate: ZD.auth("user","password")')
 
