@@ -111,18 +111,19 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
         var name = $("#yaxis1").val();
         var funct = $("#func1").val();
         var f = getObj(name, filters)
-        yaxis1 = { func: f.func.toLowerCase(),
-                   label: f.label,
-                   name: f.name,
-                   type: f.type }
-        if (funct != "") { yaxis1.func = funct;}
         if (name == "count") { //If the metric is count, the operator must be hidden
             $("#func1").hide();
             $("#op-span1").hide();
-        } else {
+        } 
+        else {
+            yaxis1 = { func: f.func.toLowerCase(),
+                       label: f.label,
+                       name: f.name,
+                       type: f.type }
             $("#func1").show();
             $("#op-span1").show();
         }
+        if (funct != "") { yaxis1.func = funct;}
         console.group("Y1 AXIS")
         console.log(name);
         console.log(yaxis1);
@@ -153,18 +154,18 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
         var name = $("#yaxis2").val();
         var funct = $("#func2").val();
         var f = getObj(name, filters)
-        yaxis2 = { func: f.func.toLowerCase(),
-                   label: f.label,
-                   name: f.name,
-                   type: f.type }
-        if (funct != "") { yaxis2.func = funct;}
         if (name == "count") { //If the metric is count, the operator must be hidden
             $("#func2").hide();
             $("#op-span2").hide();
         } else {
+            yaxis2 = { func: f.func.toLowerCase(),
+                   label: f.label,
+                   name: f.name,
+                   type: f.type }
             $("#func2").show();
             $("#op-span2").show();
         }
+        if (funct != "") { yaxis2.func = funct;}
         console.group("Y2 AXIS")
         console.log(name);
         console.log(yaxis2);
