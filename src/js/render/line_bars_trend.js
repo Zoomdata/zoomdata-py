@@ -42,45 +42,47 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
             var yaxis1Sel = $("#yaxis1");
             var yaxis2Sel = $("#yaxis2");
             var trendSel= $("#trend-attr");
+            var timeUnit = $("#time-unit")
+            //Get the time granularities (MINUTE, DAY, WEEK...)
+            grp = window.viz.dataAccessors["Trend Attribute"].getGroup()
+            $.each(grp.granularities, function(){
+                if(v_defPicker["unit"] == this){
+                    timeUnit.append($("<option />").val(this).text(this).attr("selected","selected"))
+                }
+                else{ timeUnit.append($("<option />").val(this).text(this)) }
+            })
             $.each(window.viz.source.objectFields, function() {
+                //Get the fields
                 filters.push(this);
                 if (this.visible) {
                     if (this.type == "NUMBER" || this.type == "MONEY" || this.type == "INTEGER") {
                         if(v_defPicker["yaxis1"] == this.name || v_defPicker["yaxis1"] == this.label){
-                                   yaxis1Sel.append($("<option />").val(this.name)
-                                                                       .text(this.label)
-                                                                       .attr("selected","selected"));
-                                    yaxis1= { func: this.func.toLowerCase(), 
-                                                label:this.label, 
-                                                name: this.name, 
-                                                type: this.type }
-                           }
-                           else{ yaxis1Sel.append($("<option />").val(this.name).text(this.label)) }
+                           yaxis1Sel.append($("<option />").val(this.name).text(this.label).attr("selected","selected"));
+                            yaxis1= { func: this.func.toLowerCase(), 
+                                        label:this.label, 
+                                        name: this.name, 
+                                        type: this.type }
+                           }else{ yaxis1Sel.append($("<option />").val(this.name).text(this.label)) }
 
                         if(v_defPicker["yaxis2"] == this.name || v_defPicker["yaxis2"] == this.label){
-                                   yaxis2Sel.append($("<option />").val(this.name)
-                                                                       .text(this.label)
-                                                                       .attr("selected","selected"));
-                                    yaxis2 = { func: this.func.toLowerCase(), 
-                                                label:this.label, 
-                                                name: this.name, 
-                                                type: this.type }
-
-                        }
-                       else{ yaxis2Sel.append($("<option />").val(this.name).text(this.label)) }
-
-                }else if (this.type == "TIME") {
+                           yaxis2Sel.append($("<option />").val(this.name).text(this.label).attr("selected","selected"));
+                            yaxis2 = { func: this.func.toLowerCase(), 
+                                        label:this.label, 
+                                        name: this.name, 
+                                        type: this.type }
+                         }else{ yaxis2Sel.append($("<option />").val(this.name).text(this.label)) }
+                    }//axis if
+                    else if (this.type == "TIME") {
                         if(v_defPicker["trend"] == this.name || v_defPicker["trend"] == this.label){
-                                   trendSel.append($("<option />").val(this.name)
-                                                                       .text(this.label)
-                                                                       .attr("selected","selected"));
-                            
-                        }
-                        else{
-                            trendSel.append($("<option />").val(this.name).text(this.label))
-                        }
+                           trendSel.append($("<option />").val(this.name).text(this.label).attr("selected","selected"));
+                            v_group.name = this.name
+                            v_group.defaultGranularity = this.defaultGranularity
+                            v_group.func= this.defaultGranularity
+                            v_group.type = "TIME"
+                            v_group.sort = { name: this.name, "dir": "asc" }
+                        }else{ trendSel.append($("<option />").val(this.name).text(this.label))}
                     }
-                } 
+                }//if is visible
             });
               //Set as selected the option matching the function
                 op1 = v_defPicker.operation1.toLowerCase()
@@ -103,9 +105,18 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
                   if(op2 != ""){ yaxis2.func = op2 }
                    window.viz["dataAccessors"]["Y2 Axis"].setMetric(yaxis2)
               }
+              v_group.limit = v_defPicker.limit;
+              if(!$.isEmptyObject(v_group)){
+                  if(v_defPicker.unit != ""){
+                        v_group.defaultGranularity = v_defPicker.unit
+                        v_group.func= v_defPicker.unit
+                  }
+                window.viz["dataAccessors"]["Trend Attribute"].resetGroup(v_group);
+              }
+
             $("#load-message").html("");
-        });
-    });
+        }); //done
+    }); //then
 
     $("#yaxis1").change(function() {
         var name = $("#yaxis1").val();
@@ -193,34 +204,38 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
     });
 
     $("#trend-attr").change(function() {
-            var name = $( "#group" ).val();
-            var f = getObj(name, filters)
-            if(f.type == "TIME"){ //is a dimension
-                v_group.name = f.name
-                if(metric.name != "count"){
-                    v_group.sort.name = v_metric.name
-                    v_group.sort.metricFunc = v_metric.func
-                    if(funct != ""){
-                        v_group.sort.metricFunc = funct 
-                    }
+        var name = $("#trend-attr").val();
+        var timeUnit = $("#time-unit").val();
+        if(timeUnit == ""){ timeUnit = "DAY" }
+        var f = getObj(name, filters)
+        console.log(f)
+        if (f.type == "TIME") { //is a dimension
+            v_group.name = f.name
+            v_group.limit = 1000
+            v_group.defaultGranularity = timeUnit
+            v_group.func= timeUnit
+            v_group.type = "TIME"
+            v_group.sort = {
+                name: f.name,
+                "dir": "asc"
                 }
-                else{
-                    v_group.sort = {"name":"count","dir":"desc"}
-                }
             }
-            console.group("Group By")
-            console.log(name);
-            console.log("Accessor:", v_groupAccessor);
-            console.log(group);
-            console.groupEnd()
-            list = ["Donut","Packed","Scatter","Pie","Tree","Word"]
-            var accessor = window.viz["dataAccessors"][v_groupAccessor];
-            if(inList(list, v_chart)){
-                accessor.setGroup(v_group)
-            }
-            else{
-                accessor.resetGroups([v_group]);
-            }
+        console.group("Group By")
+        console.log(name);
+        console.log(v_group);
+        console.groupEnd()
+        var accessor = window.viz["dataAccessors"]["Trend Attribute"];
+        //accessor.setGroup(v_group)
+        accessor.resetGroup(v_group);
+    });
+
+
+    $("#time-unit").change(function() {
+        var name = $("#time-unit").val();
+        v_group.func = name
+        v_group.defaultGranularity = name
+        var accessor = window.viz["dataAccessors"]["Trend Attribute"];
+        accessor.resetGroup(v_group);
     });
 
 })

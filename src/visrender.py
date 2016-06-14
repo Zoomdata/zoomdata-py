@@ -110,7 +110,9 @@ class VisRender(object):
                       "yaxis2":pickers.get('y2',''),
                       "operation1":pickers.get('operation1',''),
                       "operation2":pickers.get('operation2',''),
-                      "limit":pickers.get('limit',40)
+                      "trend":pickers.get('trend',''),
+                      "unit":pickers.get('unit',''),
+                      "limit":pickers.get('limit',1000)
                 }
         tools = self.getJSTools()
         code = self.getJSCode('line_bars_trend')
@@ -121,9 +123,10 @@ class VisRender(object):
         source = js.var('v_source', js.s(self.source))
         filters = js.var('v_filters', '[]')
         variables = js.var('v_vars', js.s(self.variables))
+        trendGrp = js.var('v_group', '{}')
         visualDiv = 'visual%s' % (str(renderCount))
         divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
-        _initial_vars = tools + cred + conf + source + filters + variables + divLocation + defPicker
+        _initial_vars = tools + cred + conf + source + trendGrp + filters + variables + divLocation + defPicker
         jscode = code.replace("_INITIAL_VARS_", _initial_vars)
         #The Pickers
         opt, count, oper = self.getPickerOptions()
@@ -133,14 +136,8 @@ class VisRender(object):
         pickers += t.selectFmt % ('op-span2','Operation2', 'func2' , opt+oper)
         axisPickers = t.divFilters % pickers
 
-        time  = t.optionFmt % ('min','Min')
-        time  += t.optionFmt % ('hour','Hour')
-        time += t.optionFmt % ('day','Day')
-        time += t.optionFmt % ('week','Week')
-        time += t.optionFmt % ('month','Month')
-        time += t.optionFmt % ('year','Year')
         pickers = t.selectFmt % ('met-span','Trend Attr', 'trend-attr', opt)
-        pickers += t.selectFmt % ('met-span','', 'trend-time', time)
+        pickers += t.selectFmt % ('met-span','', 'time-unit', opt)
         timePickers = t.divFilters % pickers
         return jscode, axisPickers + timePickers
 

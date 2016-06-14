@@ -28,7 +28,7 @@ class Template(object):
         self.optionFmt = '<option value="%s">%s</option>'
 
         # Div where the chart is rendered (by echartjs)
-        self.divChart = '<div id="%s" style="width:%spx; height:%spx; top:20%%"></div>'
+        self.divChart = '<div id="%s" class="zd chart" style="width:%spx; height:%spx; top:20%%"></div>'
 
         # Container div for the filters (metric, dimension) drop-downs
         self.divFilters = '<div style="display:inline-block;margin-top:5px" align="center">%s</div>' 
