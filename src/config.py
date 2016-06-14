@@ -19,11 +19,6 @@ config = {
 
 # ============ VISUALIZATION =============================
 queryConfig = { 'tz': 'UTC', 'filters': [] }
-metric = { "func": "sum", "label": "Actual Sales", "name": "price", "type": "MONEY" }
-groups = { "name": "usercity",
-                   "limit": 40,
-                   "sort": { "name":"price", "dir": "desc", "metricFunc":"sum" }}
-
 # ============== SOURCE =================================================
 connReq = { 
         'mongo': {  "name": "",
@@ -47,5 +42,29 @@ sourceReq = {
     "name": "",
     "sourceParameters": { "collection": "" },
     "sparked": False
+}
+
+charTypes = {
+    "bars": "Bars",
+    "bars-histo": "Bars: Histogram",
+    "bars-multi": "Bars: Multiple Metrics",
+    "boxplot": "Box Plot",
+    "donut": "Donut",
+    "fingerpaint": "Fingerpaint",
+    "floating-bubbles": "Floating Bubbles",
+    "heat-map": "Heat Map",
+    "kpi": "KPI",
+    "line-bars-trend": "Line & Bars Trend",
+    "line-trend-attr": "Line Trend: Attribute Values",
+    "line-trend-multi": "Line Trend: Multiple Metrics",
+    "map-markers": "Map: Markers",
+    "map-us": "Map: US Regions",
+    "map-world": "Map: World Countries",
+    "packed-bubbles": "Packed Bubbles",
+    "pie": "Pie",
+    "scatter-plot": "Scatter Plot",
+    "table": "Table",
+    "tree-map": "Tree Map",
+    "word-cloud": "Word Cloud",
 }
 

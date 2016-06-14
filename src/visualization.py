@@ -57,10 +57,9 @@ class ZDVisualization(object):
         self._source = ''
         self._chart = chart
         self._variables = {}
-        self._metric = metric
         self.test = ''
-        self._group = groups
         self._filters = []
+        self._pickers = {}
         #Attrs for new source/collection creation
         self._connReq = connReq
         self._sourceReq = sourceReq
@@ -130,16 +129,20 @@ class ZDVisualization(object):
                        'source': self._source,
                        'chart': self._chart,
                        'query': self._query,
-                       'variables': self._variables,
-                       'metric': self._metric,
-                       'group': self._group }
+                       'variables': self._variables }
             vr = VisRender(params)
-            return vr.getVisualization(self._renderCount)
+            return vr.getVisualization(self._renderCount, self._pickers)
 
-    def render(self):
+    def render(self, pickers={}):
         """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
-        chart, source, etc. to render an specific visualization """
+        chart, source, etc. to render an specific visualization. 
+            - Parameters:
+            pickers: Dictionary (optional). Defaults values for the the pickers (dimension/metric) can
+                    be specified using the field name or field label. Ex: 
+                    {'metric': 'Quantity Sold'} or {'dimension': 'Eventname','metric':'qtysold'}
+        """
         if(self._source):
+            self._pickers = pickers
             iframe = self.__getVisualization()[0]
             self._renderCount += 1
             return HTML(iframe)
@@ -356,24 +359,6 @@ class ZDVisualization(object):
     @variables.setter
     def variables(self, value):
         self._variables = value
-
-    @property
-    def metric(self):
-        """ Dict: Represent the metric used to render the visualization. Can be visually changed through drop-downs"""
-        return self._metric
-
-    @metric.setter
-    def metric(self, value):
-        self._metric = value
-
-    @property
-    def group(self):
-        """ Dict: Represent the dimension used to render the visualization. Can be visually changed through drop-downs"""
-        return self._group
-
-    @group.setter
-    def group(self, value):
-        self._group = value
 
     @property
     def conf(self):
