@@ -25,19 +25,6 @@ class VisRender(object):
         self.chart = params['chart']
         self.query = params['query']
         self.variables = params['variables']
-        self.metric = params['metric']
-        self.group = params['group']
-
-    def createClient(self):
-        credentials = {
-                'credentials': {'key': self.credentials},
-                'application': {'secure': self.conf['secure'], 
-                                'host': self.conf['host'], 
-                                'port': self.conf['port'], 
-                                'path': self.conf['path']}
-                }
-        params = js.s(credentials)
-        return 'ZoomdataSDK.createClient(%s)' % (params)
 
     def setRequireConf(self):
         #Set the require configuration part
@@ -50,20 +37,13 @@ class VisRender(object):
             tools = ''.join(t.readlines())
         return tools
 
-    def connectionPromise(self):
-        """Returns the string associated to the 
-        promise that connects with ZD and creates the visualization"""
-        prom = self.createClient()
-        p ='window.client = client; return(client)'
-        then = '.then(%s)' % (js.createFunc(params='client',body=p, anon=True))
-        visualconf = {'element':'%s', 'config': self.query}
-        visualconf.update( { 'source': {'name': self.source},
-                             'visualization': self.chart,
-                             'variables': '%s' #Initialization variables
-                           })
-        p = js.s(visualconf)
-        #NOTE: variables goes first because setVars re-organizes the dict 
-        p = js.setVars(p, ('variables','visLocation')) #set the element for echarts rendering
+    def getJSCode(self, chart):
+        code = ''
+        path = os.path.dirname(os.path.realpath(__file__))
+        file = path+'/js/render/'+chart+'.js'
+        with open(file) as f: #Set of functions used within the script
+            code = ''.join(f.readlines())
+        return code 
 
         # The function .done is where the Thread object is created
         # and the specific data such as groups, variables, parameters,
@@ -86,94 +66,98 @@ class VisRender(object):
         oper += t.optionFmt % ('avg','Avg')
         return opt, count, oper
     
-    def setListBarTrend(self, renderCount):
-        """Wraps and render all the JS code inside the require module"""
-        # These vars hold the selected dataAccessor
-        yAxis1 = js.var('metricAccessor', 'Y')
-        yAxis2 = js.var('metricAccessor', 'Y')
-        #HTML Pickers
-        opt, count, oper = self.getPickerOptions()
-        pickers = t.selectFmt % ('met-span','Y1 Axis', 'metric1', opt+count)
-        pickers += t.selectFmt % ('met-span','Y2 Axis', 'metric2', opt+count)
-        pickers += t.selectFmt % ('met-span','Time Attr', 'time', opt)
-        # pickers += t.selectFmt % ('op-span','Op', 'func' , opt+oper)
-        pickers = t.divFilters % (pickers)
-        # ===Jquery onchange handlers for the pickers========
-        pickersJS = t.metricPicker % {'metID':'metric1'}
-        pickersJS += t.metricPicker % {'metID': 'metric2'}
-        pickersJS += t.funcPicker 
-        # wrap everything up as the require callback body
-        cb = tools + visLocation + varVariables + varFilters + varChart + varMetric \
-            + varGroup + varOperator + zdSDK + pickersJS
-        reqCallback = js.createFunc(params=self.deps, body=cb, anon=True)
-        req = 'require(%s,%s)' % (js.s(self.deps), reqCallback)
-        return req, pickers
-
-    def getPickers(self):
-        opt = t.optionFmt % ('','Select option')
-        #Options for the metric operators picker
-        oper  = t.optionFmt % ('min','Min')
-        oper += t.optionFmt % ('max','Max')
-        oper += t.optionFmt % ('sum','Sum')
-        oper += t.optionFmt % ('avg','Avg')
-        #Include the count/volume in the metrics
-        count = t.optionFmt % ('count','Count')
-        pickers = ""
-        if self.chart not in ["Line & Bars Trend"]:
-            pickers = t.selectFmt % ('grp-span','Dimension', 'group', opt)
-            pickers += t.selectFmt % ('met-span','Metric', 'metric1', opt+count)
-        else:
-            pickers = t.selectFmt % ('met-span','Y1 Axis', 'metric1', opt+count)
-            pickers += t.selectFmt % ('met-span','Y2 Axis', 'metric2', opt+count)
-        pickers += t.selectFmt % ('op-span','Operation', 'func' , opt+oper)
-        return t.divFilters % (pickers)
-
-    def wrapper(self, renderCount):
-        """Wraps and render all the JS code inside the require module"""
+    def setCommonChart(self, renderCount, pickers):
+        # Default values to render the table
+        defPicker = { "dimension":pickers.get('dimension',''),
+                      "metric":pickers.get('metric',''),
+                      "limit":pickers.get('limit',40),
+                      "operation":pickers.get('operation','')
+                }
         tools = self.getJSTools()
+        code = self.getJSCode('common_charts')
+        # Vars declaration 
+        defPicker = js.var('v_defPicker', js.s(defPicker))
+        cred = js.var('v_credentials', js.s(self.credentials))
+        chart = js.var('v_chart', js.s(self.chart))
+        conf = js.var('v_conf', js.s(self.conf))
+        source = js.var('v_source', js.s(self.source))
+        filters = js.var('v_filters', '[]')
+        variables = js.var('v_vars', js.s(self.variables))
         visualDiv = 'visual%s' % (str(renderCount))
-        varChart = js.var('chart',js.s(self.chart))
-        visLocation = js.var('visLocation','document.getElementById("'+visualDiv+'")')
-        varFilters  = js.var('filters', '[]')
-        varVariables= js.var('variables', js.s(self.variables))
+        divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
         # These vars hold the selected dataAccessor
-        varMetricAccessor  = js.var('metricAccessor', '""')
-        varGroupAccessor  = js.var('groupAccessor', '""')
+        mAcc = js.var('v_metricAccessor', '""')
+        gAcc = js.var('v_groupAccessor', '""')
         # These var hold the selected metric operator 
-        varOperator = js.var('metricOp','""')
+        varOp = js.var('v_metricOp','""')
         #These two variables hold the selected metric and dimensions objects
-        varMetric   = js.var('metric', js.s(self.metric))
-        varGroup    = js.var('group', js.s(self.group))
-        # The kernel variable to communicate python-js
-        varKernel   = js.var('kernel', 'Ipython.notebook.kernel')
-        #The promise with the SDK connection code
-        zdSDK = self.connectionPromise()
-        #. Jquery onchange handlers for the pickers
-        pickersJS = ""
-        if self.chart not in ["Line & Bars Trend"]:
-            pickersJS = t.groupPicker 
-            pickersJS += t.metricPicker % {'metID':'metric1'}
-        else:
-            pickersJS = t.metricPicker % {'metID':'metric1'}
-            pickersJS += t.metricPicker % {'metID': 'metric2'}
-        pickersJS += t.funcPicker 
-        # wrap everything up as the require callback body
-        cb = tools + visLocation + varVariables + varFilters + varChart + varMetric \
-            + varGroup + varOperator + zdSDK + pickersJS
-        reqCallback = js.createFunc(params=self.deps, body=cb, anon=True)
-        return 'require(%s,%s)' % (js.s(self.deps), reqCallback)
+        met = js.var('v_metric', '{}')
+        group = js.var('v_group', '{}')
+        #Wrap it up!
+        _initial_vars = tools + cred + conf + source + chart + \
+                        filters + variables + divLocation + mAcc \
+                        + gAcc + varOp + met + group + defPicker
+        jscode = code.replace("_INITIAL_VARS_", _initial_vars)
+        #The Pickers
+        opt, count, oper = self.getPickerOptions()
+        pickers = t.selectFmt % ('grp-span','Dimension', 'group', opt)
+        pickers += t.selectFmt % ('met-span','Metric', 'metric', opt+count)
+        pickers += t.selectFmt % ('op-span','Operation', 'func' , opt+oper)
+        return jscode, t.divFilters % (pickers)
 
-    def getVisualization(self, renderCount):
+    def setLineBarsTrend(self, renderCount, pickers):
+        defPicker = { "yaxis1":pickers.get('y1',''),
+                      "yaxis2":pickers.get('y2',''),
+                      "operation1":pickers.get('operation1',''),
+                      "operation2":pickers.get('operation2',''),
+                      "limit":pickers.get('limit',40)
+                }
+        tools = self.getJSTools()
+        code = self.getJSCode('line_bars_trend')
+        # Vars declaration 
+        defPicker = js.var('v_defPicker', js.s(defPicker))
+        cred = js.var('v_credentials', js.s(self.credentials))
+        conf = js.var('v_conf', js.s(self.conf))
+        source = js.var('v_source', js.s(self.source))
+        filters = js.var('v_filters', '[]')
+        variables = js.var('v_vars', js.s(self.variables))
+        visualDiv = 'visual%s' % (str(renderCount))
+        divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
+        _initial_vars = tools + cred + conf + source + filters + variables + divLocation + defPicker
+        jscode = code.replace("_INITIAL_VARS_", _initial_vars)
+        #The Pickers
+        opt, count, oper = self.getPickerOptions()
+        pickers = t.selectFmt % ('met-span','Y1 Axis', 'yaxis1', opt+count)
+        pickers += t.selectFmt % ('op-span1','Operation1', 'func1' , opt+oper)
+        pickers += t.selectFmt % ('met-span','Y2 Axis', 'yaxis2', opt+count)
+        pickers += t.selectFmt % ('op-span2','Operation2', 'func2' , opt+oper)
+        axisPickers = t.divFilters % pickers
+
+        time  = t.optionFmt % ('min','Min')
+        time  += t.optionFmt % ('hour','Hour')
+        time += t.optionFmt % ('day','Day')
+        time += t.optionFmt % ('week','Week')
+        time += t.optionFmt % ('month','Month')
+        time += t.optionFmt % ('year','Year')
+        pickers = t.selectFmt % ('met-span','Trend Attr', 'trend-attr', opt)
+        pickers += t.selectFmt % ('met-span','', 'trend-time', time)
+        timePickers = t.divFilters % pickers
+        return jscode, axisPickers + timePickers
+
+    def getVisualization(self, renderCount, pickers):
         """Set up of the final code snippet to be rendered"""
         w, h = self.width, self.height
         visualDiv = 'visual%s' % (str(renderCount))
-        pickers = ''
-        if self.chart not in ['Map: Markers']:
-            pickers = self.getPickers()
-        # if self.chart == 'Line & Bars Trend':
-            # req, pickers = self.setListBarTrend(renderCount)
-        htmlcode = pickers + t.loadmsg + t.divChart % (visualDiv, str(w), str(h))
-        jscode = t.scriptTags % (self.setRequireConf(), self.wrapper(renderCount))
+        if self.chart in ['Map: Markers']:
+            jscode, pickersDiv = self.setCommonChart(renderCount, pickers)
+            pickersDiv  = ""
+        elif self.chart in ['Line & Bars Trend']:
+            jscode, pickersDiv = self.setLineBarsTrend(renderCount, pickers)
+        else:
+            jscode, pickersDiv = self.setCommonChart(renderCount, pickers)
+
+        htmlcode = pickersDiv + t.loadmsg + t.divChart % (visualDiv, str(w), str(h))
+        jscode = t.scriptTags % (self.setRequireConf(), jscode)
         html = htmlcode + jscode
-        iframe = t.iframe % (t.requirejs, html, str(w+40), str(h+80) )
+        iframe = t.iframe % (t.requirejs, html, str(w+40), str(h+90) )
         return iframe, htmlcode, jscode
