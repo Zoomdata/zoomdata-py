@@ -75,11 +75,11 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
                     else if (this.type == "TIME") {
                         if(v_defPicker["trend"] == this.name || v_defPicker["trend"] == this.label){
                            trendSel.append($("<option />").val(this.name).text(this.label).attr("selected","selected"));
-                            v_group.name = this.name
-                            v_group.defaultGranularity = this.defaultGranularity
-                            v_group.func= this.defaultGranularity
-                            v_group.type = "TIME"
-                            v_group.sort = { name: this.name, "dir": "asc" }
+                            v_trend.name = this.name
+                            v_trend.defaultGranularity = this.defaultGranularity
+                            v_trend.func= this.defaultGranularity
+                            v_trend.type = "TIME"
+                            v_trend.sort = { name: this.name, "dir": "asc" }
                         }else{ trendSel.append($("<option />").val(this.name).text(this.label))}
                     }
                 }//if is visible
@@ -105,13 +105,13 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
                   if(op2 != ""){ yaxis2.func = op2 }
                    window.viz["dataAccessors"]["Y2 Axis"].setMetric(yaxis2)
               }
-              v_group.limit = v_defPicker.limit;
-              if(!$.isEmptyObject(v_group)){
+              v_trend.limit = v_defPicker.limit;
+              if(!$.isEmptyObject(v_trend)){
                   if(v_defPicker.unit != ""){
-                        v_group.defaultGranularity = v_defPicker.unit
-                        v_group.func= v_defPicker.unit
+                        v_trend.defaultGranularity = v_defPicker.unit
+                        v_trend.func= v_defPicker.unit
                   }
-                window.viz["dataAccessors"]["Trend Attribute"].resetGroup(v_group);
+                window.viz["dataAccessors"]["Trend Attribute"].resetGroup(v_trend);
               }
 
             $("#load-message").html("");
@@ -210,32 +210,32 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
         var f = getObj(name, filters)
         console.log(f)
         if (f.type == "TIME") { //is a dimension
-            v_group.name = f.name
-            v_group.limit = 1000
-            v_group.defaultGranularity = timeUnit
-            v_group.func= timeUnit
-            v_group.type = "TIME"
-            v_group.sort = {
+            v_trend.name = f.name
+            v_trend.limit = 1000
+            v_trend.defaultGranularity = timeUnit
+            v_trend.func= timeUnit
+            v_trend.type = "TIME"
+            v_trend.sort = {
                 name: f.name,
                 "dir": "asc"
                 }
             }
         console.group("Group By")
         console.log(name);
-        console.log(v_group);
+        console.log(v_trend);
         console.groupEnd()
         var accessor = window.viz["dataAccessors"]["Trend Attribute"];
-        //accessor.setGroup(v_group)
-        accessor.resetGroup(v_group);
+        //accessor.setGroup(v_trend)
+        accessor.resetGroup(v_trend);
     });
 
 
     $("#time-unit").change(function() {
         var name = $("#time-unit").val();
-        v_group.func = name
-        v_group.defaultGranularity = name
+        v_trend.func = name
+        v_trend.defaultGranularity = name
         var accessor = window.viz["dataAccessors"]["Trend Attribute"];
-        accessor.resetGroup(v_group);
+        accessor.resetGroup(v_trend);
     });
 
 })
