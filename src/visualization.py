@@ -64,7 +64,7 @@ class ZDVisualization(object):
         self._connReq = connReq
         self._sourceReq = sourceReq
 
-    def auth(self, user, password):
+    def auth(self, server, user, password):
         cred = user+':'+password
         key = base64.b64encode(cred.encode('ascii'))
         key = 'Basic ' + key.decode('ascii')
@@ -72,6 +72,9 @@ class ZDVisualization(object):
         self._sourceReq['created']['by']['username'] = user
         self._conf['headers']['Authorization'] = key
         # Get the account
+        if server:
+            server.rstrip('/')
+            self._serverURL = server
         self._account = rest.getUserAccount(self._serverURL, self._conf['headers'], user)
 
     def __createMongoCollection(self, name, df, connName):
@@ -133,14 +136,7 @@ class ZDVisualization(object):
             vr = VisRender(params)
             return vr.getVisualization(self._renderCount, self._pickers)
 
-    def render(self, pickers={}):
-        """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
-        chart, source, etc. to render an specific visualization. 
-            - Parameters:
-            pickers: Dictionary (optional). Defaults values for the the pickers (dimension/metric) can
-                    be specified using the field name or field label. Ex: 
-                    {'metric': 'Quantity Sold'} or {'dimension': 'Eventname','metric':'qtysold'}
-        """
+    def __render(self, pickers):
         if(self._source):
             self._pickers = pickers
             iframe = self.__getVisualization()[0]
@@ -148,7 +144,112 @@ class ZDVisualization(object):
             return HTML(iframe)
         else:
             print('You need to specify a source: ZD.source = "Source Name"')
-        # return HTML(html + jscode)
+
+    def graph(self, src="", chart= "", conf={}):
+        """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
+        chart, source, etc. to render an specific visualization. 
+            - Parameters:
+            source: String. Specify the source of the visualization
+            chart: String. Specify what type of visualization will be rendered
+            conf: Dictionary (optional). Defaults values for the the pickers (attribute/metric). 
+                  This attribute is different depending on the chart type. Ex:
+
+                  For: Bars, Donut, Floating Bubbles, Pie, Tree Map, Packed Bubbles, Word Cloud
+                  {attribute:'Ticket', 'metric': 'Survived', 'operation':'sum', 'limit':10 }
+
+                  For: KPI
+                  {'metric': 'Survived', 'operation':'sum'}
+
+                  For Line & Bars Trend
+                  {'y1':'Commision', 'y2':'Pricepaid' 'op1': 'sum', 'op2':'avg', 'trend':'Saletime','unit':'MONTH' 'limit':10 }
+
+                  For Line Trend: Attribute Values
+                  {'attribute':'Ticket', 'metric':'Pricepaid' 'operation': 'sum', 'trend':'Saletime','unit':'MONTH' 'limit':10 }
+
+                  For Map: Markers no attributes are required
+        """
+        if(self.setSource(src)):
+            if(self.__setChart(chart)):
+                return self.__render(conf)
+
+    # ==== Graph shorcut methods =============
+
+    def pie(self, **conf):
+        """
+        Renders a Pie visualization for the default source if defined. 
+        Parameters:
+            Set of optional attributes to use as default: 
+            - attribute: String. Field name to use as default attribute/dimension
+            - metric: String. Field name to use as default metric
+            - limit: Integer: Max number of results
+            - operation: The type of the operation/function on the metric. sum/max/min/avg
+        """
+        return self.graph(self._source, 'Pie', conf)
+
+    def bars(self, **conf):
+        """
+        Renders a bars visualization for the default source if defined. 
+        Parameters:
+            Set of optional attributes to use as default: 
+            - attribute: String. Field name to use as default attribute/dimension
+            - metric: String. Field name to use as default metric
+            - limit: Integer: Max number of results
+            - operation: The type of the operation/function on the metric. sum/max/min/avg
+        """
+        return self.graph(self._source, 'Bars', conf)
+
+    def donut(self, **conf):
+        """
+        Renders a Donut visualization for the default source if defined. 
+        Parameters:
+            Set of optional attributes to use as default: 
+            - attribute: String. Field name to use as default attribute/dimension
+            - metric: String. Field name to use as default metric
+            - limit: Integer: Max number of results
+            - operation: The type of the operation/function on the metric. sum/max/min/avg
+        """
+        return self.graph(self._source, 'Donut', conf)
+
+    def heatMap(self, **conf):
+        """
+        Renders a Heat Map  visualization for the default source if defined. 
+        Parameters:
+            Set of optional attributes to use as default (if supported): 
+            - attribute: String. Field name to use as default attribute/dimension
+            - metric: String. Field name to use as default metric
+            - limit: Integer: Max number of results
+            - operation: The type of the operation/function on the metric. sum/max/min/avg
+        """
+        return self.graph(self._source, 'Heat Map', conf)
+
+    def mapMarkers(self, **conf):
+        """
+        Renders a Map: Markers visualization for the default source if defined. 
+        This type of chart must be supported by the source
+        """
+        return self.graph(self._source, 'Map: Markers', conf)
+
+    def kpi(self, **conf):
+        """
+        Renders a KPI visualization for the default source if defined. 
+        Parameters:
+            Set of optional attributes to use as default (if supported): 
+            - metric: String. Field name to use as default metric
+            - operation: The type of the operation/function on the metric. sum/max/min/avg
+        """
+        return self.graph(self._source, 'KPI', conf)
+
+    def treeMap(self, **conf):
+        """
+        Renders a Tree Map  visualization for the default source if defined. 
+        Parameters:
+            Set of optional attributes to use as default (if supported): 
+            - attribute: String. Field name to use as default attribute/dimension
+            - metric: String. Field name to use as default metric
+            - limit: Integer: Max number of results
+            - operation: The type of the operation/function on the metric. sum/max/min/avg
+        """
+        return self.graph(self._source, 'Tree Map', conf)
 
     def __getHTML(self):
         try:
@@ -233,48 +334,40 @@ class ZDVisualization(object):
                     print('\n'.join(visualsNames))
                 else:
                     visId = [v['id'] for v in self._allowed_visuals if v['name'] == name]
-                    result = vd.setMapMarkers(visId[0], definition, self._serverURL, \
-                                                self._conf['headers'], self._source_id)
+                    result = False
+                    if name == 'Map: Markers':
+                        result = vd.setMapMarkers(visId[0], definition, self._serverURL, \
+                                                    self._conf['headers'], self._source_id)
+                    elif name == 'Line & Bars Trend':
+                        result = vd.setLineBarsTrend(visId[0], definition, self._serverURL, \
+                                                    self._conf['headers'], self._source_id)
                     if result:
                         self._source_charts.append(name)
+                    else:
+                        print('There where error or perhaps the add/update feature is not supported yet for this chart')
+
             else:
                 print('You must define a source before setting a new visualization')
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
-    def __getNotebookPath(self):
-        jscode = """
-                <script type='text/javascript'>
-                var nb = IPython.notebook;
-                var kernel = IPython.notebook.kernel;
-                var command = "ZD.notebook = '" + nb.base_url + nb.notebook_path + "'";
-                kernel.execute(command);
-                </script>
-        """
-        return HTML(jscode)
-
             
-    #====== PROPERTIES (DEFINED THIS WAY TO PROVIDE DOCSTRING) ===============
-    @property
-    def chart(self):
-        """String: The chart types for the visualization. Allowed values are:
-            Donut, Bars, Pie, KPI, Scatter Plot, Floating Bubbles, Packed Bubbles,
-            Tree Map, Heat Map, Word Cloud
-        """
-        return self._chart
-
-    @chart.setter
-    def chart(self, value):
+    def __setChart(self, nchart):
         if(self._conf['headers']['Authorization']):
+            # If the graph() function is called using the same source and chart, there is no need
+            # to change it
+            if (not nchart and self._chart) or (nchart == self._chart): 
+                return True
             if not self._source:
                 print('You need to define a source before setting the chart')
             else:
                 if not (self._allowed_visuals):
                     self._allowed_visuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
                 visualsNames = [v['name'] for v in self._allowed_visuals]
-                if value in visualsNames: # If is an allowed visualization type
-                    if value in self._source_charts: # If is an active visualization for the source
-                        self._chart = value
+                if nchart in visualsNames: # If is an allowed visualization type
+                    if nchart in self._source_charts: # If is an active visualization for the source
+                        self._chart = nchart
+                        return True
                     else:
                         print('Chart type not configured, to configure it use ZD.setVisualization method')
                 else:
@@ -282,83 +375,50 @@ class ZDVisualization(object):
                     print('\n'.join(visualsNames))
         else:
             print('You need to authenticate: ZD.auth("user","password")')
+        return False
 
-    @property
-    def width(self):
-        """ Integer: The width of the visualization """
-        return self._width
-
-    @width.setter
-    def width(self, value):
-        self._width = value
-
-    @property
-    def height(self):
-        """ Integer: The height of the visualization """
-        return self._height
-
-    @height.setter
-    def height(self, value):
-        self._height = value
-
-    # @property
-    # def paths(self):
-        # return self._paths
-
-    # @paths.setter
-    # def paths(self, value):
-        # self._paths = value
-
-    @property
-    def query(self):
-        """
-        Dictionary. Allows to manually modify the query used to fecth data from ZD. 
-        """
-        return self._query
-
-    @query.setter
-    def query(self, value):
-        self._query = value
-
-    @property
-    def source(self):
-        """ The source used to fetch and render the visualization """
-        return self._source
-
-    @source.setter
-    def source(self, value):
+    def setSource(self, nsource):
+        #Set the source
+        if (not nsource and self._source) or (nsource == self._source): 
+            return True
         credentials = ''
-        if self._source_credentials.get(value, False): # If the source is allready registered
-            self._credentials = self._source_credentials[value][0] # The key of the source
-            self._source_id = self._source_credentials[value][1] # The id of the source
-            self._source = value
+        if self._source_credentials.get(nsource, False): # If the source is allready registered
+            self._credentials = self._source_credentials[nsource][0] # The key of the source
+            self._source_id = self._source_credentials[nsource][1] # The id of the source
+            self._source = nsource
             #Get the active visualizations (charts) for that source
             vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
             self._source_charts = [v['name'] for v in vis['visualizations']]
+            return True
         else:
             if(self._conf['headers']['Authorization']):
                 #This will change once oauth is implemented, cuz the key won't be needed anymore
-                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], value)
+                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], nsource)
                 if self._credentials:
-                    self._source = value
-                    self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, value)
-                    self._source_credentials.update({value: [ self._credentials, self._source_id ]})
+                    self._source = nsource
+                    self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, nsource)
+                    self._source_credentials.update({nsource: [ self._credentials, self._source_id ]})
                     vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
                     self._source_charts = [v['name'] for v in vis['visualizations']]
                     with open('data/sources.json', 'w') as sc:
                         json.dump(self._source_credentials, sc)
+                    return True
             else:
                 print('You need to authenticate: ZD.auth("user","password")')
+                return False
 
-    @property
-    def variables(self):
-        """ String: Representation of a JSON """
-        return self._variables
+    # def __getNotebookPath(self):
+        # jscode = """
+                # <script type='text/javascript'>
+                # var nb = IPython.notebook;
+                # var kernel = IPython.notebook.kernel;
+                # var command = "ZD.notebook = '" + nb.base_url + nb.notebook_path + "'";
+                # kernel.execute(command);
+                # </script>
+        # """
+        # return HTML(jscode)
 
-    @variables.setter
-    def variables(self, value):
-        self._variables = value
-
+    #====== PROPERTIES (DEFINED THIS WAY TO PROVIDE DOCSTRING) ===============
     @property
     def conf(self):
         """Dict: Configuration to create collections and sources. Uses specific Zoomdata configuration such as port and server for mongo connections, accounts Ids, authorization headers
@@ -371,25 +431,45 @@ class ZDVisualization(object):
         protocol = 'https' if self._conf['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, self._conf['host'], self._conf['port'], self._conf['path'])
 
-    @property
-    def connReq(self):
-        """ Dict: Specific data for store handlers as mongo, spark, etc. """
-        return self._connReq
+    # @property
+    # def query(self):
+        # """
+        # Dictionary. Allows to manually modify the query used to fecth data from ZD. 
+        # """
+        # return self._query
 
-    @connReq.setter
-    def connReq(self, value):
-        self._connReq = value
+    # @query.setter
+    # def query(self, value):
+        # self._query = value
 
-    @property
-    def sourceReq(self):
-        """
-        Dict Specific data for source creation. Allows to add description to the source being created.
-        """
-        return self._sourceReq
+    # @property
+    # def variables(self):
+        # """ String: Representation of a JSON """
+        # return self._variables
 
-    @sourceReq.setter
-    def sourceReq(self, value):
-        self._sourceReq = value
+    # @variables.setter
+    # def variables(self, value):
+        # self._variables = value
+
+    # @property
+    # def connReq(self):
+        # """ Dict: Specific data for store handlers as mongo, spark, etc. """
+        # return self._connReq
+
+    # @connReq.setter
+    # def connReq(self, value):
+        # self._connReq = value
+
+    # @property
+    # def sourceReq(self):
+        # """
+        # Dict Specific data for source creation. Allows to add description to the source being created.
+        # """
+        # return self._sourceReq
+
+    # @sourceReq.setter
+    # def sourceReq(self, value):
+        # self._sourceReq = value
 
 
 

@@ -181,15 +181,20 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
 
     $("#func").change(function() {
             var funct = $("#func").val();
+            list = ["KPI"]
             if(funct == ""){
                 //If no operation, set the default operation of the metric
                 var f = getObj(v_metric.name, filters)
                 v_metric.func = f.func.toLowerCase()
-                v_group.sort.metricFunc = v_metric.func.toLowerCase()
+                if(!inList(list, v_chart)){
+                    v_group.sort.metricFunc = v_metric.func.toLowerCase()
+                }
             }
             else{
                 v_metric.func = funct;
-                v_group.sort.metricFunc = funct;
+                if(!inList(list, v_chart)){
+                    v_group.sort.metricFunc = funct;
+                }
             }
             console.group("Function")
             console.log(funct);

@@ -71,7 +71,7 @@ class VisRender(object):
     
     def setCommonChart(self, renderCount, pickers):
         # Default values to render the table
-        defPicker = { "dimension":pickers.get('dimension',''),
+        defPicker = { "dimension":pickers.get('attribute',''),
                       "metric":pickers.get('metric',''),
                       "limit":pickers.get('limit',40),
                       "operation":pickers.get('operation','')
@@ -93,16 +93,18 @@ class VisRender(object):
         jscode = code.replace("_INITIAL_VARS_", _initial_vars)
         #The Pickers
         opt, count, oper = self.getPickerOptions()
-        pickers = t.selectFmt % ('grp-span','Dimension', 'group', opt)
-        pickers += t.selectFmt % ('met-span','Metric', 'metric', opt+count)
-        pickers += t.selectFmt % ('op-span','Operation', 'func' , opt+oper)
-        return jscode, t.divFilters % (pickers)
+        p1 = ""
+        if 'kpi' not in  self.chart.lower():
+            p1 = t.selectFmt % ('grp-span','Attribute', 'group', opt)
+        p2 = t.selectFmt % ('met-span','Metric', 'metric', opt+count)
+        p3 = t.selectFmt % ('op-span','Operation', 'func' , opt+oper)
+        return jscode, t.divFilters % (p1+p2+p3)
 
     def setLineBarsTrend(self, renderCount, pickers):
         defPicker = { "yaxis1":pickers.get('y1',''),
                       "yaxis2":pickers.get('y2',''),
-                      "operation1":pickers.get('operation1',''),
-                      "operation2":pickers.get('operation2',''),
+                      "operation1":pickers.get('op1',''),
+                      "operation2":pickers.get('op2',''),
                       "trend":pickers.get('trend',''),
                       "unit":pickers.get('unit',''),
                       "limit":pickers.get('limit',1000)
@@ -126,7 +128,7 @@ class VisRender(object):
 
     def setLineTrendAttrs(self, renderCount, pickers):
         defPicker = { "metric":pickers.get('metric',''),
-                      "group":pickers.get('dimension',''),
+                      "group":pickers.get('attribute',''),
                       "trend":pickers.get('trend',''),
                       "operation":pickers.get('operation',''),
                       "unit":pickers.get('unit','none'),
@@ -141,7 +143,7 @@ class VisRender(object):
         jscode = code.replace("_INITIAL_VARS_", _initial_vars)
         #The Pickers
         opt, count, oper = self.getPickerOptions()
-        pickers = t.selectFmt % ('dim-span','Dimension', 'group', opt)
+        pickers = t.selectFmt % ('dim-span','Attribute', 'group', opt)
         pickers += t.selectFmt % ('met-span','Y Axis', 'metric', opt+count)
         pickers += t.selectFmt % ('op-span','Operation', 'func' , opt+oper)
         mainPickers = t.divFilters % pickers
