@@ -1,0 +1,28 @@
+{
+  "visId": "",
+  "name": "Line & Bars Trend",
+  "type": "LINE_AND_BARS",
+  "enabled": true,
+  "source": {
+    "variables": {
+      "Y1 Color": "#43a2ca",
+      "Y1 Axis": "count",
+      "Y2 Color": "#FF7F0E",
+      "Y2 Axis": "count",
+      "Chart Name": "",
+      "Chart Description": "",
+      "Trend Attribute": ""
+    },
+    "sourceId": "572237eae4b0ad64f32b8917",
+    "textSearchEnabled": false,
+    "playbackMode": false,
+    "live": false,
+    "sparkIt": false
+  },
+  "owner": "SOURCE",
+  "controlsCfg": {
+    "timeControlCfg": {},
+    "playerControlCfg": {}
+  },
+  "lastModified": 1465272508854
+}
