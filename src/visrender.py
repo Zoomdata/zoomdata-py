@@ -45,16 +45,6 @@ class VisRender(object):
             code = ''.join(f.readlines())
         return code 
 
-        # The function .done is where the Thread object is created
-        # and the specific data such as groups, variables, parameters,
-        # etc for the specific visualization being loaded
-        done = '.done(%s);' % (js.createFunc(params='result',body=t.doneBody, anon=True))
-        test = 'console.log("Requesting visualization...");'
-        p = 'client.visualize(%s)%s' % (p, done)
-        p = test + p
-        then1 = '.then(%s);' % (js.createFunc(params='client',body=p, anon=True))
-        return prom+then+then1
-
     def getPickerOptions(self):
         opt = t.optionFmt % ('','Select option')
         #Include the count/volume in the metrics
@@ -65,6 +55,19 @@ class VisRender(object):
         oper += t.optionFmt % ('sum','Sum')
         oper += t.optionFmt % ('avg','Avg')
         return opt, count, oper
+
+    def getInitVars(self, defPicker, renderCount):
+        #=== Common Vars declaration =======
+        tools = self.getJSTools()
+        defPicker = js.var('v_defPicker', js.s(defPicker))
+        cred = js.var('v_credentials', js.s(self.credentials))
+        conf = js.var('v_conf', js.s(self.conf))
+        source = js.var('v_source', js.s(self.source))
+        filters = js.var('v_filters', '[]')
+        variables = js.var('v_vars', js.s(self.variables))
+        visualDiv = 'visual%s' % (str(renderCount))
+        divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
+        return tools + cred + conf + source + filters + variables + divLocation + defPicker
     
     def setCommonChart(self, renderCount, pickers):
         # Default values to render the table
@@ -73,18 +76,10 @@ class VisRender(object):
                       "limit":pickers.get('limit',40),
                       "operation":pickers.get('operation','')
                 }
-        tools = self.getJSTools()
-        code = self.getJSCode('common_charts')
         # Vars declaration 
-        defPicker = js.var('v_defPicker', js.s(defPicker))
-        cred = js.var('v_credentials', js.s(self.credentials))
+        initVars = self.getInitVars(defPicker, renderCount)
+        code = self.getJSCode('common_charts')
         chart = js.var('v_chart', js.s(self.chart))
-        conf = js.var('v_conf', js.s(self.conf))
-        source = js.var('v_source', js.s(self.source))
-        filters = js.var('v_filters', '[]')
-        variables = js.var('v_vars', js.s(self.variables))
-        visualDiv = 'visual%s' % (str(renderCount))
-        divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
         # These vars hold the selected dataAccessor
         mAcc = js.var('v_metricAccessor', '""')
         gAcc = js.var('v_groupAccessor', '""')
@@ -94,9 +89,7 @@ class VisRender(object):
         met = js.var('v_metric', '{}')
         group = js.var('v_group', '{}')
         #Wrap it up!
-        _initial_vars = tools + cred + conf + source + chart + \
-                        filters + variables + divLocation + mAcc \
-                        + gAcc + varOp + met + group + defPicker
+        _initial_vars = initVars + chart + met + group + mAcc + gAcc + varOp 
         jscode = code.replace("_INITIAL_VARS_", _initial_vars)
         #The Pickers
         opt, count, oper = self.getPickerOptions()
@@ -114,19 +107,10 @@ class VisRender(object):
                       "unit":pickers.get('unit',''),
                       "limit":pickers.get('limit',1000)
                 }
-        tools = self.getJSTools()
         code = self.getJSCode('line_bars_trend')
-        # Vars declaration 
-        defPicker = js.var('v_defPicker', js.s(defPicker))
-        cred = js.var('v_credentials', js.s(self.credentials))
-        conf = js.var('v_conf', js.s(self.conf))
-        source = js.var('v_source', js.s(self.source))
-        filters = js.var('v_filters', '[]')
-        variables = js.var('v_vars', js.s(self.variables))
-        trendGrp = js.var('v_group', '{}')
-        visualDiv = 'visual%s' % (str(renderCount))
-        divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
-        _initial_vars = tools + cred + conf + source + trendGrp + filters + variables + divLocation + defPicker
+        initVars = self.getInitVars(defPicker, renderCount)
+        trendGrp = js.var('v_trend', '{}')
+        _initial_vars = initVars + trendGrp
         jscode = code.replace("_INITIAL_VARS_", _initial_vars)
         #The Pickers
         opt, count, oper = self.getPickerOptions()
@@ -135,11 +119,36 @@ class VisRender(object):
         pickers += t.selectFmt % ('met-span','Y2 Axis', 'yaxis2', opt+count)
         pickers += t.selectFmt % ('op-span2','Operation2', 'func2' , opt+oper)
         axisPickers = t.divFilters % pickers
-
         pickers = t.selectFmt % ('met-span','Trend Attr', 'trend-attr', opt)
         pickers += t.selectFmt % ('met-span','', 'time-unit', opt)
         timePickers = t.divFilters % pickers
         return jscode, axisPickers + timePickers
+
+    def setLineTrendAttrs(self, renderCount, pickers):
+        defPicker = { "metric":pickers.get('metric',''),
+                      "group":pickers.get('dimension',''),
+                      "trend":pickers.get('trend',''),
+                      "operation":pickers.get('operation',''),
+                      "unit":pickers.get('unit','none'),
+                      "limit":pickers.get('limit',1000)
+                }
+        code = self.getJSCode('line_trend_attrs')
+        initVars = self.getInitVars(defPicker, renderCount)
+        trendGrp = js.var('v_trend', '{}')
+        group = js.var('v_group', '{}')
+        metric = js.var('v_metric', '{}')
+        _initial_vars = initVars + trendGrp + group + metric
+        jscode = code.replace("_INITIAL_VARS_", _initial_vars)
+        #The Pickers
+        opt, count, oper = self.getPickerOptions()
+        pickers = t.selectFmt % ('dim-span','Dimension', 'group', opt)
+        pickers += t.selectFmt % ('met-span','Y Axis', 'metric', opt+count)
+        pickers += t.selectFmt % ('op-span','Operation', 'func' , opt+oper)
+        mainPickers = t.divFilters % pickers
+        pickers = t.selectFmt % ('time-span','Trend Attr', 'trend-attr', opt)
+        pickers += t.selectFmt % ('unit-span','', 'time-unit', opt)
+        timePickers = t.divFilters % pickers
+        return jscode, mainPickers + timePickers
 
     def getVisualization(self, renderCount, pickers):
         """Set up of the final code snippet to be rendered"""
@@ -150,6 +159,8 @@ class VisRender(object):
             pickersDiv  = ""
         elif self.chart in ['Line & Bars Trend']:
             jscode, pickersDiv = self.setLineBarsTrend(renderCount, pickers)
+        elif self.chart in ['Line Trend: Attribute Values']:
+            jscode, pickersDiv = self.setLineTrendAttrs(renderCount, pickers)
         else:
             jscode, pickersDiv = self.setCommonChart(renderCount, pickers)
 
