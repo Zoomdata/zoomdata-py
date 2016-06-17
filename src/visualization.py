@@ -77,42 +77,31 @@ class ZDVisualization(object):
             self._serverURL = server
         self._account = rest.getUserAccount(self._serverURL, self._conf['headers'], user)
 
-    def __createMongoCollection(self, name, df, connName):
-        """ Creates a MongoDB collection """
-        try:
-            from pymongo import MongoClient
-            client = MongoClient(self._conf['mongoServer'], self._conf['mongoPort'] )
-            db = getattr(client, self._conf["mongoSchema"])
-            collection = db[name] 
-            if df: # Use the dataframe if it is specified
-                print('Creating collection '+name+'...')
-                collection.insert_many(df)
-                print('collection created on db')
-            print('creating data source using collection '+name+'...')
-            return rest.createSource(self._serverURL, self._conf['headers'], \
-                                     self._account, name, connName, 
-                                     self._connReq, self._sourceReq)
-        except ImportError:
-            print ('To create mongo collections you must have the pymongo module installed')
-        except Exception as e:
-            print('Error: '+str(e))
-
-    def createSource(self, sourceName, dataframe=False, handler='mongo', connName=False): 
-        """Creates a new Zoomdata collection using the specified parameters:
+    def createSource(self, sourceName, dataframe): 
+        """Creates a new Zoomdata source using the specified parameters:
                 Parameters:
                     sourceName: The name given for the new source
-                    dataframe: Contains the data used to populate the source, if it is not specified
-                               then a collection with name sourceName will be used instead
-                    handler: The store handler, 'mongo' is used by default
-                    connName: The name of the connection, if no name is specified, the source name will be used.
+                    dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
         """
         if(self._conf['headers']['Authorization']):
-            if handler in ['mongo','spark']:
-                if handler == 'mongo':
-                    connName = connName or sourceName
-                    return self.__createMongoCollection(sourceName, dataframe, connName)
-            else:
-                print('Invalid collection handler!')
+            urlParams = { 'separator':',',
+                          'contentType':'text/csv',
+                          'includesHeader':'true',
+                          'includesNewFields':'true' }
+            #Convert dataframe from whatever it is to csv
+            print('Parsing data...')
+            try:
+                df = dataframe.to_csv()
+                resp = rest.createSourceFromData(self._serverURL, self._conf['headers'], \
+                                                self._account, sourceName, df, urlParams)
+                if resp:
+                    # Avoid using wrong (deprecated) keys in case an old source with the same name
+                    # existed.
+                    if(self._source_credentials.pop(sourceName)):
+                        with open('data/sources.json', 'w') as sc:
+                            json.dump(self._source_credentials, sc)
+            except:
+                print('Invalid dataframe')
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 

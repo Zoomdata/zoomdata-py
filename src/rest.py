@@ -1,5 +1,6 @@
 import urllib3
 import json
+from urllib.parse import quote
 urllib3.disable_warnings()
 http = urllib3.PoolManager()
 
@@ -93,17 +94,18 @@ class RestCalls(object):
         print(data(r))
         return False
 
-    def getSourceKey(self, url, headers, sourceName):
+    def getSourceKey(self, url, headers, sourceName, print_error=True):
         # This method will be useless once oauth be implemented
         service = '/service/sources/key?source='+sourceName.replace(' ','+')
         r = http.request('GET', url+service ,headers=headers)
         if r.status in [200]:
             resp = json.loads(data(r))
             return resp['id']
-        print(data(r))
+        if print_error:
+            print(data(r))
         return False
 
-    def getSourceID(self, url, headers, accountID, sourceName):
+    def getSourceID(self, url, headers, accountID, sourceName, printError = True):
         # https://pubsdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/name/Ticket%20Sales
         service = '/api/accounts/'+accountID+'/sources/name/'+sourceName.replace(' ','%20')
         r = http.request('GET', url+service, headers=headers)
@@ -112,6 +114,43 @@ class RestCalls(object):
             href = [l['href'] for l in resp['links'] if l['rel'] == 'self']
             # https://server:port/zoomdata/api/sources/
             return href[0].split('/')[-1]
+        if printError:
+            print(data(r))
+        return False
+    
+    def createSourceFromData(self, url, headers, accountId, sourceName, df, urlParams={}):
+        # Creates or uses a source to populate it with data (from a dataframe or file without creating collections)
+        # Check if the source exists
+        sourceId = self.getSourceID(url, headers, accountId, sourceName, printError=False)
+        if not sourceId:
+            print('Creating source "'+sourceName+'"...')
+            service = '/api/accounts/'+accountId+'/sources/file'
+            body = {'name': sourceName, 'sourceParameters':{}}
+            #Create the source
+            #https://pubsdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/file
+            r = http.request('POST', url+service, headers=headers, body=json.dumps(body))
+            if r.status in [200, 201]:
+                resp = json.loads(data(r))
+                href = [l['href'] for l in resp['links'] if l['rel'] == 'self']
+                # https://server:port/zoomdata/api/sources/
+                sourceId = href[0].split('/')[-1]
+                print('Source with id "'+sourceId+'" sucessfully created')
+            else:
+                print(data(r))
+                return False
+        #Populate the source with the specified data
+        print('Populating source with data...')
+        service='/api/sources/'+sourceId+'/data?'
+        param_format = '%s=%s'
+        params_list = []
+        for param in urlParams:
+            p = param_format % (param, quote(urlParams[param]))
+            params_list.append(p)
+        service += '&'.join(params_list)
+        r = http.request('PUT', url+service, headers=headers, body=df)
+        if r.status in [200, 201]:
+            print('Done!')
+            return True
         print(data(r))
         return False
 
