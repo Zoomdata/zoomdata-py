@@ -70,6 +70,9 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
                                                 type: this.type }
                                }
                                else{
+                                   if(v_defPicker["metric"] == "count"){
+                                       metricSelect.val("count");
+                                   }
                                    metricSelect.append($("<option />").val(this.name).text(this.label));
                                }
                           }
