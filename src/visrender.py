@@ -25,6 +25,18 @@ class VisRender(object):
         self.chart = params['chart']
         self.query = params['query']
         self.variables = params['variables']
+        # Parse the filters
+        self.filters = []
+        #This implementation is is for the following filter syntax:
+        # Ex: {'field1':['value1','value2'], 'field2':'value1'}
+        filterdict= params['filters']
+        for field in filterdict:
+            filt = {'operation':'IN'}
+            filt.update({'path': field})
+            if isinstance(filterdict[field], (str, int, bool)):
+                filterdict[field] = [filterdict[field]]
+            filt.update({'value':filterdict[field]})
+            self.filters.append(filt)
 
     def setRequireConf(self):
         #Set the require configuration part
@@ -63,7 +75,7 @@ class VisRender(object):
         cred = js.var('v_credentials', js.s(self.credentials))
         conf = js.var('v_conf', js.s(self.conf))
         source = js.var('v_source', js.s(self.source))
-        filters = js.var('v_filters', '[]')
+        filters = js.var('v_filters', js.s(self.filters))
         variables = js.var('v_vars', js.s(self.variables))
         visualDiv = 'visual%s' % (str(renderCount))
         divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')

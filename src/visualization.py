@@ -58,7 +58,7 @@ class ZDVisualization(object):
         self._chart = chart
         self._variables = {}
         self.test = ''
-        self._filters = []
+        self._filters = {}
         self._pickers = {}
         #Attrs for new source/collection creation
         self._connReq = connReq
@@ -77,7 +77,7 @@ class ZDVisualization(object):
             self._serverURL = server
         self._account = rest.getUserAccount(self._serverURL, self._conf['headers'], user)
 
-    def createSource(self, sourceName, dataframe): 
+    def register(self, sourceName, dataframe): 
         """Creates a new Zoomdata source using the specified parameters:
                 Parameters:
                     sourceName: The name given for the new source
@@ -105,7 +105,7 @@ class ZDVisualization(object):
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
-    def listSources(self):
+    def sources(self):
         """ List the availables sources for the account"""
         if(self._conf['headers']['Authorization']):
             rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._account)
@@ -121,20 +121,22 @@ class ZDVisualization(object):
                        'source': self._source,
                        'chart': self._chart,
                        'query': self._query,
+                       'filters': self._filters,
                        'variables': self._variables }
             vr = VisRender(params)
             return vr.getVisualization(self._renderCount, self._pickers)
 
-    def __render(self, pickers):
+    def __render(self, pickers, filters):
         if(self._source):
             self._pickers = pickers
+            self._filters = filters
             iframe = self.__getVisualization()[0]
             self._renderCount += 1
             return HTML(iframe)
         else:
             print('You need to specify a source: ZD.source = "Source Name"')
 
-    def graph(self, src="", chart= "", conf={}):
+    def graph(self, src="", chart= "", conf={}, filters={}):
         """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
         chart, source, etc. to render an specific visualization. 
             - Parameters:
@@ -144,101 +146,124 @@ class ZDVisualization(object):
                   This attribute is different depending on the chart type. Ex:
 
                   For: Bars, Donut, Floating Bubbles, Pie, Tree Map, Packed Bubbles, Word Cloud
-                  {attribute:'Ticket', 'metric': 'Survived', 'operation':'sum', 'limit':10 }
+                  {'attribute':'Ticket', 'metric': 'Survived', 'operation':'sum', 'limit':10 }
 
                   For: KPI
                   {'metric': 'Survived', 'operation':'sum'}
 
                   For Line & Bars Trend
-                  {'y1':'Commision', 'y2':'Pricepaid' 'op1': 'sum', 'op2':'avg', 'trend':'Saletime','unit':'MONTH' 'limit':10 }
+                  {'y1':'Commision', 'y2':'Pricepaid', 'op1': 'sum', 'op2':'avg', 'trend':'Saletime','unit':'MONTH', 'limit':10 }
 
                   For Line Trend: Attribute Values
-                  {'attribute':'Ticket', 'metric':'Pricepaid' 'operation': 'sum', 'trend':'Saletime','unit':'MONTH' 'limit':10 }
+                  {'attribute':'Ticket', 'metric':'Pricepaid', 'operation': 'sum', 'trend':'Saletime','unit':'MONTH', 'limit':10 }
 
                   For Map: Markers no attributes are required
+
+            filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and a list
+                of values that the data must match. The name of the fields can be obtained through ZD.fields()
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}
+
         """
         if(self.setSource(src)):
             if(self.__setChart(chart)):
-                return self.__render(conf)
+                return self.__render(conf, filters)
 
     # ==== Graph shorcut methods =============
 
-    def pie(self, **conf):
+    def pie(self, filters={}, **conf):
         """
         Renders a Pie visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default: 
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
+                a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - attribute: String. Field name to use as default attribute/dimension
             - metric: String. Field name to use as default metric
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Pie', conf)
+        return self.graph(self._source, 'Pie', conf, filters)
 
-    def bars(self, **conf):
+    def bars(self, filters={}, **conf):
         """
         Renders a bars visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default: 
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
+                a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - attribute: String. Field name to use as default attribute/dimension
             - metric: String. Field name to use as default metric
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Bars', conf)
+        return self.graph(self._source, 'Bars', conf, filters)
 
-    def donut(self, **conf):
+    def donut(self, filters={}, **conf):
         """
         Renders a Donut visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default: 
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
+                a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - attribute: String. Field name to use as default attribute/dimension
             - metric: String. Field name to use as default metric
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Donut', conf)
+        return self.graph(self._source, 'Donut', conf, filters)
 
-    def heatMap(self, **conf):
+    def heatMap(self, filters={}, **conf):
         """
         Renders a Heat Map  visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default (if supported): 
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
+                a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - attribute: String. Field name to use as default attribute/dimension
             - metric: String. Field name to use as default metric
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Heat Map', conf)
+        return self.graph(self._source, 'Heat Map', conf, filters)
 
-    def mapMarkers(self, **conf):
+    def mapMarkers(self, filters={}, **conf):
         """
         Renders a Map: Markers visualization for the default source if defined. 
         This type of chart must be supported by the source
         """
-        return self.graph(self._source, 'Map: Markers', conf)
+        return self.graph(self._source, 'Map: Markers', conf, filters)
 
-    def kpi(self, **conf):
+    def kpi(self, filters={}, **conf):
         """
         Renders a KPI visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default (if supported): 
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
+                a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - metric: String. Field name to use as default metric
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'KPI', conf)
+        return self.graph(self._source, 'KPI', conf, filters)
 
-    def treeMap(self, **conf):
+    def treeMap(self, filters={}, **conf):
         """
         Renders a Tree Map  visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default (if supported): 
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
+                a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - attribute: String. Field name to use as default attribute/dimension
             - metric: String. Field name to use as default metric
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Tree Map', conf)
+        return self.graph(self._source, 'Tree Map', conf, filters)
 
     def __getHTML(self):
         try:
@@ -273,7 +298,7 @@ class ZDVisualization(object):
         else:
             print('You must specify a source')
 
-    def sourceFields(self, sourceName=False, conf={}):
+    def fields(self, sourceName=False, conf={}):
         """
         Retrieve or modify the fields for a given source. It takes to optional parameters:
             - sourceName: String: Set the source from where fields will be fetched/modified. If no source is specified
@@ -370,11 +395,10 @@ class ZDVisualization(object):
         #Set the source
         if (not nsource and self._source) or (nsource == self._source): 
             return True
-        credentials = ''
         if self._source_credentials.get(nsource, False): # If the source is allready registered
+            self._source = nsource
             self._credentials = self._source_credentials[nsource][0] # The key of the source
             self._source_id = self._source_credentials[nsource][1] # The id of the source
-            self._source = nsource
             #Get the active visualizations (charts) for that source
             vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
             self._source_charts = [v['name'] for v in vis['visualizations']]
@@ -382,9 +406,10 @@ class ZDVisualization(object):
         else:
             if(self._conf['headers']['Authorization']):
                 #This will change once oauth is implemented, cuz the key won't be needed anymore
-                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], nsource)
-                if self._credentials:
+                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], nsource)
+                if credentials:
                     self._source = nsource
+                    self._credentials = self._credentials 
                     self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, nsource)
                     self._source_credentials.update({nsource: [ self._credentials, self._source_id ]})
                     vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
