@@ -425,16 +425,6 @@ class ZDVisualization(object):
                 print('You need to authenticate: ZD.auth("user","password")')
                 return False
 
-    # def __getNotebookPath(self):
-        # jscode = """
-                # <script type='text/javascript'>
-                # var kernel = IPython.notebook.kernel;
-                # var command = "ZD.notebook = '" + nb.base_url + nb.notebook_path + "'";
-                # kernel.execute(command);
-                # </script>
-        # """
-        # return HTML(jscode)
-
     #====== PROPERTIES (DEFINED THIS WAY TO PROVIDE DOCSTRING) ===============
     @property
     def conf(self):
@@ -448,65 +438,76 @@ class ZDVisualization(object):
         protocol = 'https' if self._conf['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, self._conf['host'], self._conf['port'], self._conf['path'])
 
-    def getData(self, source, fields=[], rows=1000000):
-        """
-        Retrieves data from the specified source and sets a dataframe availeble to the user.
-        """
-        credentials = ''
-        source_id = ''
-        if self._source_credentials.get(source, False): # If the source is allready registered
-            credentials = self._source_credentials[source][0] # The key of the source
-        else:
-            if(self._conf['headers']['Authorization']):
-                #This will change once oauth is implemented, cuz the key won't be needed anymore
-                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source)
-                if credentials:
-                    source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, source)
-                    self._source_credentials.update({source: [ credentials, source_id ]})
-                    with open('data/sources.json', 'w') as sc:
-                        json.dump(self._source_credentials, sc)
-                else:
-                    return False
-            else:
-                print('You need to authenticate: ZD.auth("user","password")')
-                return False
-        code = ''
-        if not fields:
-            pass
-        self._columns = fields
-        path = os.path.dirname(os.path.realpath(__file__))
-        with open(path+'/js/queryData.js') as f: # Set of functions used within the script
-            code = ''.join(f.readlines())
-        # Max number of rows
-        rows = rows if rows < 1000000 else 1000000
-        # Var declarations
-        v_source = js.var('v_source', js.s(source))
-        v_creds = js.var('v_credentials', js.s(credentials))
-        v_conf = js.var('v_conf', js.s(self._conf))
-        v_limit = js.var('v_limit', js.s(rows))
-        v_logcount= js.var('v_logcount', js.s(self._logcount))
-        html = t.logdata % (self._logcount, self._logcount)
-        # Parse the fields
-        if fields:
-            fields = [{'name':f} for f in fields]
-            fields[0].update({'limit':rows})
-        v_fields = js.var('v_fields', js.s(fields))
-        # Wrap it up!
-        _initial_vars = v_source + v_creds + v_conf + v_limit + v_fields + v_logcount 
-        self._logcount += 1
-        reqConf = 'require.config({paths:%s});' % (js.s(self._paths))
-        jscode = t.scriptTags % (reqConf, code.replace("_INITIAL_VARS_", _initial_vars))
-        return HTML(html+jscode)
-
     def first(self, source, fields=[]):
         return self.getData(source, fields=fields, rows=1)
 
-    def get(self):
-        if(self._dframe):
-            df = self._dframe.replace("'",'"')
-            df = self._dframe.replace("--","'")
-            df = pd.DataFrame(eval(df), columns=self._columns)
-            return df
-        else:
-            print("You must call the getData() function to fetch the required data first")
+    def getData(self, source, fields=[], rows=1000000):
+        try:
+            import ssl
+            from websocket import create_connection
+            credentials = ''
+            source_id = ''
+            if self._source_credentials.get(source, False): # If the source is allready registered
+                credentials = self._source_credentials[source][0] # The key of the source
+                source_id = self._source_credentials[source][1] # The id of the source
+            else:
+                if(self._conf['headers']['Authorization']):
+                    #This will change once oauth is implemented, cuz the key won't be needed anymore
+                    credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source)
+                    if credentials:
+                        source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, source)
+                        self._source_credentials.update({source: [ credentials, source_id ]})
+                        with open('data/sources.json', 'w') as sc:
+                            json.dump(self._source_credentials, sc)
+                    else:
+                        return False
+                else:
+                    print('You need to authenticate: ZD.auth("user","password")')
+                    return False
+
+            # Parse the fields
+            self._columns = fields
+            if not fields:
+                pass
+            # Websocket request
+            socketUrl = self._serverURL + "/websocket?key=" + credentials
+            socketUrl = socketUrl.replace('https','wss')
+            ws = create_connection(socketUrl)
+            rows = rows if rows < 1000000 else 1000000
+            request = { "type": "START_VIS",
+                        "cid": "f3020fa6e9339ee5829f6e2caa8d2e40",
+                        "request": {
+                           "streamSourceId": source_id,
+                           "cfg": { 
+                                   'tz': 'EST',
+                                   'fields': fields,
+                                   'limit': rows
+                                   }
+                            }
+                     }
+            ws.send(js.s(request))
+            req_done = False
+            dataframe = []
+            maxloop = 0
+            while maxloop <= 30:
+                frame = ws.recv() #NOTE: This will hang if no data is received
+                if 'NOT_DIRTY_DATA' in frame:
+                    ws.close()
+                    break
+                maxloop += 1
+                frame = frame.replace('false','False')
+                frame = frame.replace('null','False')
+                frame = eval(frame)
+                dataframe.extend(frame.get('data',[]))
+
+            if maxloop == 30: # There was an error
+                ws.close()
+
+            if dataframe:
+                return pd.DataFrame(dataframe, columns=fields)
+            print('No data was returned')
+            return False
+
+        except ImportError:
+            print ('No websocket module found. Install: pip3 install websocket-client')
 
