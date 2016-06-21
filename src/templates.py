@@ -19,6 +19,9 @@ class Template(object):
 
         self.loadmsg = '<p id="load-message" style="margin-top:10px" align="center">Loading visualization...</p>'
 
+        # Output messages for getData
+        self.logdata = "<div id='fetch%d'></div><div id='done%d'></div>"
+
         # Javascript tags to enclose all the js code
         self.scriptTags = '<script type="text/javascript">%s %s</script>' 
 

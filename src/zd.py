@@ -1,15 +1,18 @@
 #/usr/bin/python3
+# -*- coding: utf-8 -*-
 import os
 import urllib3
 import json
 import base64
+import pandas as pd
+from time import sleep
 from .rest import RestCalls
 from .visdefinition import VisDefinition
 from .visrender import VisRender
 from .config import *
 from .jsbuilder import JSBuilder
 from .templates import Template
-from IPython.display import HTML
+from IPython.display import display, HTML
 
 http = urllib3.PoolManager()
 rest = RestCalls()
@@ -41,9 +44,13 @@ class ZDVisualization(object):
         if os.path.exists('data/sources.json'):
             with open('data/sources.json','r') as sc:
                 self._source_credentials = json.load(sc)
-        self.notebook = ''
-
-        #Visualization attrs
+        # Dataframe fetching attrs
+        self._dframe= ''
+        self._logcount = 0
+        self._columns= []
+        # Visualization attrs
+        self._source = ''
+        self._chart = chart
         self.connResp = {}
         self._width = 800
         self._height = 400
@@ -54,12 +61,9 @@ class ZDVisualization(object):
         self._source_id = '' # This is the source id to get the source definition
         self._source_charts = [] # Active visualizations for the current source
         self._allowed_visuals = [] # All the visualizations names allowed by zoomdata
-        self._source = ''
-        self._chart = chart
         self._variables = {}
-        self.test = ''
-        self._filters = {}
-        self._pickers = {}
+        self._filters = {} # Filters defined by the user to narrow visualization results
+        self._pickers = {} # Default pickers values for the visualization
         #Attrs for new source/collection creation
         self._connReq = connReq
         self._sourceReq = sourceReq
@@ -424,7 +428,6 @@ class ZDVisualization(object):
     # def __getNotebookPath(self):
         # jscode = """
                 # <script type='text/javascript'>
-                # var nb = IPython.notebook;
                 # var kernel = IPython.notebook.kernel;
                 # var command = "ZD.notebook = '" + nb.base_url + nb.notebook_path + "'";
                 # kernel.execute(command);
@@ -445,47 +448,65 @@ class ZDVisualization(object):
         protocol = 'https' if self._conf['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, self._conf['host'], self._conf['port'], self._conf['path'])
 
-    # @property
-    # def query(self):
-        # """
-        # Dictionary. Allows to manually modify the query used to fecth data from ZD. 
-        # """
-        # return self._query
+    def getData(self, source, fields=[], rows=1000000):
+        """
+        Retrieves data from the specified source and sets a dataframe availeble to the user.
+        """
+        credentials = ''
+        source_id = ''
+        if self._source_credentials.get(source, False): # If the source is allready registered
+            credentials = self._source_credentials[source][0] # The key of the source
+        else:
+            if(self._conf['headers']['Authorization']):
+                #This will change once oauth is implemented, cuz the key won't be needed anymore
+                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source)
+                if credentials:
+                    source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, source)
+                    self._source_credentials.update({source: [ credentials, source_id ]})
+                    with open('data/sources.json', 'w') as sc:
+                        json.dump(self._source_credentials, sc)
+                else:
+                    return False
+            else:
+                print('You need to authenticate: ZD.auth("user","password")')
+                return False
+        code = ''
+        if not fields:
+            pass
+        self._columns = fields
+        path = os.path.dirname(os.path.realpath(__file__))
+        with open(path+'/js/queryData.js') as f: # Set of functions used within the script
+            code = ''.join(f.readlines())
+        # Max number of rows
+        rows = rows if rows < 1000000 else 1000000
+        # Var declarations
+        v_source = js.var('v_source', js.s(source))
+        v_creds = js.var('v_credentials', js.s(credentials))
+        v_conf = js.var('v_conf', js.s(self._conf))
+        v_limit = js.var('v_limit', js.s(rows))
+        v_logcount= js.var('v_logcount', js.s(self._logcount))
+        html = t.logdata % (self._logcount, self._logcount)
+        # Parse the fields
+        if fields:
+            fields = [{'name':f} for f in fields]
+            fields[0].update({'limit':rows})
+        v_fields = js.var('v_fields', js.s(fields))
+        # Wrap it up!
+        _initial_vars = v_source + v_creds + v_conf + v_limit + v_fields + v_logcount 
+        self._logcount += 1
+        reqConf = 'require.config({paths:%s});' % (js.s(self._paths))
+        jscode = t.scriptTags % (reqConf, code.replace("_INITIAL_VARS_", _initial_vars))
+        return HTML(html+jscode)
 
-    # @query.setter
-    # def query(self, value):
-        # self._query = value
+    def first(self, source, fields=[]):
+        return self.getData(source, fields=fields, rows=1)
 
-    # @property
-    # def variables(self):
-        # """ String: Representation of a JSON """
-        # return self._variables
+    def get(self):
+        if(self._dframe):
+            df = self._dframe.replace("'",'"')
+            df = self._dframe.replace("--","'")
+            df = pd.DataFrame(eval(df), columns=self._columns)
+            return df
+        else:
+            print("You must call the getData() function to fetch the required data first")
 
-    # @variables.setter
-    # def variables(self, value):
-        # self._variables = value
-
-    # @property
-    # def connReq(self):
-        # """ Dict: Specific data for store handlers as mongo, spark, etc. """
-        # return self._connReq
-
-    # @connReq.setter
-    # def connReq(self, value):
-        # self._connReq = value
-
-    # @property
-    # def sourceReq(self):
-        # """
-        # Dict Specific data for source creation. Allows to add description to the source being created.
-        # """
-        # return self._sourceReq
-
-    # @sourceReq.setter
-    # def sourceReq(self, value):
-        # self._sourceReq = value
-
-
-
-
-        
