@@ -439,9 +439,22 @@ class ZDVisualization(object):
         self._serverURL = '%s://%s:%s%s' % (protocol, self._conf['host'], self._conf['port'], self._conf['path'])
 
     def first(self, source, fields=[]):
+        """
+        Retrieve the first data row from the specified source as a pandas dataframe object.
+        Parameters:
+            - source: String. The name of the source
+            - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified
+        """
         return self.getData(source, fields=fields, rows=1)
 
-    def getData(self, source, fields=[], rows=1000000):
+    def getData(self, source, fields=[], rows=10000):
+        """
+        Retrieve data from the specified source as a pandas dataframe object.
+        Parameters:
+            - source: String. The name of the source
+            - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified
+            - rows: Integer (optional). The limit of rows fetched. Default is 10,000. Top limit is 1,000,000.
+        """
         try:
             import ssl
             from websocket import create_connection
