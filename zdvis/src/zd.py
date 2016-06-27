@@ -1,7 +1,6 @@
 #/usr/bin/python3
 # -*- coding: utf-8 -*-
 import os
-import urllib3
 import json
 import base64
 import pandas as pd
@@ -14,7 +13,6 @@ from .jsbuilder import JSBuilder
 from .templates import Template
 from IPython.display import display, HTML
 
-http = urllib3.PoolManager()
 rest = RestCalls()
 vd = VisDefinition()
 js = JSBuilder()

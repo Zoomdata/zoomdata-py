@@ -7,10 +7,11 @@ ZDVIS is a python3 module that allows to render Zoomdata visualizations into you
 The following python modules are required to use ZDvis: urllib3, json, base64, pymongo
 
 ## Installation
-Clone this repo or download it and copy it into your notebooks folder
+Clone this repo or download it and install it as a normal python3 module
 ```
-cd ~/.jupyter/notebooks   #or your notebooks folder
 git clone https://github.com/Zoomdata/ZDvis
+cd zdvis
+sudo python3 setup.py install
 ```
 Then start your jupyter server
 
@@ -25,7 +26,7 @@ from zdvis import ZD
 ZD is a python object that allows you to perform different actions using the Zoomdata SDK:
 
 ##### Getting ZD object help
-You can inspect attributes and methods from the ZD object as well as get the help for each one of them as in any normal Ipython session: by pressing the `tab` key as autocomplete for `ZD.` and adding a question mark `?` at the end of a attr/method to get the docstring.
+You can inspect attributes and methods from the ZD object as well as get help for each one of them as in any normal Ipython session: by pressing the `tab` key as autocomplete for `ZD.` and adding a question mark `?` at the end of a attr/method to get the docstring.
 
 
 ##### Authentication
@@ -46,8 +47,7 @@ To list the available sources (requires authentication):
 ZD.listSources()
 ```
 ##### Source creation
-New sources can be created on new or existing connections. As data it accepts a Pandas dataframe or if not dataframe is specified
-a mongo collection with the same name that `sourceName` will be used instead. Use `ZD.createSource?` for more details
+New sources can be created on new or existing connections. As data it accepts a Pandas dataframe. If no dataframe is specified then a mongo collection with the same name that `sourceName` will be used instead. Use `ZD.createSource?` for more details
 
 ```
 ZD.createSource(sourceName, dataframe, handler, connectionName)
