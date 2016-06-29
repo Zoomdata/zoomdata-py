@@ -38,10 +38,14 @@ class ZDVisualization(object):
         protocol = 'https' if config['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, config['host'], config['port'], config['path'])
         self._source_credentials = {}
-        self._account = ''
         if os.path.exists('data/sources.json'):
             with open('data/sources.json','r') as sc:
                 self._source_credentials = json.load(sc)
+
+        # User authentication
+        self._user = ''
+        self._account = ''
+
         # Dataframe fetching attrs
         self._dframe= ''
         self._logcount = 0
@@ -78,6 +82,10 @@ class ZDVisualization(object):
             server.rstrip('/')
             self._serverURL = server
         self._account = rest.getUserAccount(self._serverURL, self._conf['headers'], user)
+        self._user = user
+
+    def _oauth(self, user):
+        self._user = user
 
     def register(self, sourceName, dataframe): 
         """Creates a new Zoomdata source using the specified parameters:
