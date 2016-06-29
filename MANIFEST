@@ -3,3 +3,17 @@ setup.py
 zdvis/__init__.py
 zdvis/data_handler.py
 zdvis/main.py
+zdvis/src/__init__.py
+zdvis/src/config.py
+zdvis/src/jsbuilder.py
+zdvis/src/rest.py
+zdvis/src/templates.py
+zdvis/src/visdefinition.py
+zdvis/src/visrender.py
+zdvis/src/zd.py
+zdvis/src/js/tools.js
+zdvis/src/js/render/common_charts.js
+zdvis/src/js/render/line_bars_trend.js
+zdvis/src/js/render/line_trend_attrs.js
+zdvis/src/js/visdef/line_bars_trend.json
+zdvis/src/js/visdef/map_markers.json

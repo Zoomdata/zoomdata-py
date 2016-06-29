@@ -18,6 +18,7 @@ class VisRender(object):
         self.deps = ['ZoomdataSDK','jquery']
         self.conf =  params['conf']
         self.credentials = params['credentials'] 
+        self.token = params['token'] 
         self.paths = params['paths'] 
         self.width = params['width']
         self.height = params['height']
@@ -72,7 +73,10 @@ class VisRender(object):
         #=== Common Vars declaration =======
         tools = self.getJSTools()
         defPicker = js.var('v_defPicker', js.s(defPicker))
-        cred = js.var('v_credentials', js.s(self.credentials))
+        creds = {'key': self.credentials }
+        if self.token != '':
+            creds = {'access_token': self.token}
+        cred = js.var('v_credentials', js.s(creds))
         conf = js.var('v_conf', js.s(self.conf))
         source = js.var('v_source', js.s(self.source))
         filters = js.var('v_filters', js.s(self.filters))

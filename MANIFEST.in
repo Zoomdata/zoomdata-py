@@ -1,0 +1,3 @@
+recursive-include zdvis/src/js *
+include zdvis/src/js/render/*.js
+include zdvis/src/js/visdef/*.js

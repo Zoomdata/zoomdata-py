@@ -3,6 +3,7 @@
 import os
 import json
 import base64
+import pickle
 import pandas as pd
 from time import sleep
 from .rest import RestCalls
@@ -38,13 +39,14 @@ class ZDVisualization(object):
         protocol = 'https' if config['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, config['host'], config['port'], config['path'])
         self._source_credentials = {}
-        if os.path.exists('data/sources.json'):
-            with open('data/sources.json','r') as sc:
+        if os.path.exists('/tmp/sources.json'):
+            with open('/tmp/sources.json','r') as sc:
                 self._source_credentials = json.load(sc)
 
         # User authentication
         self._user = ''
         self._account = ''
+        self._token = ''
 
         # Dataframe fetching attrs
         self._dframe= ''
@@ -85,7 +87,19 @@ class ZDVisualization(object):
         self._user = user
 
     def _oauth(self, user):
+        # Ideally this should go within data_handler
         self._user = user
+        datafile = open('/var/userdata.pkl', 'rb')
+        data = pickle.load(datafile)
+        userdata = data.get(user, False)
+        datafile.close()
+        if userdata:
+            self._account = userdata['accountId']
+            self._token = userdata['token']
+            key = "Bearer {}".format(userdata['token'])
+            self._connReq['mongo']['created']['by']['username'] = user
+            self._sourceReq['created']['by']['username'] = user
+            self._conf['headers']['Authorization'] = key
 
     def register(self, sourceName, dataframe): 
         """Creates a new Zoomdata source using the specified parameters:
@@ -108,7 +122,7 @@ class ZDVisualization(object):
                     # Avoid using wrong (deprecated) keys in case an old source with the same name
                     # existed.
                     if(self._source_credentials.pop(sourceName)):
-                        with open('data/sources.json', 'w') as sc:
+                        with open('/tmp/sources.json', 'w') as sc:
                             json.dump(self._source_credentials, sc)
             except:
                 print('Invalid dataframe')
@@ -125,6 +139,7 @@ class ZDVisualization(object):
     def __getVisualization(self):
             params = { 'conf': self._conf,
                        'credentials': self._credentials,
+                       'token': self._token,
                        'paths': self._paths,
                        'width': self._width,
                        'height': self._height,
@@ -424,7 +439,7 @@ class ZDVisualization(object):
                     self._source_credentials.update({nsource: [ self._credentials, self._source_id ]})
                     vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
                     self._source_charts = [v['name'] for v in vis['visualizations']]
-                    with open('data/sources.json', 'w') as sc:
+                    with open('/tmp/sources.json', 'w') as sc:
                         json.dump(self._source_credentials, sc)
                     return True
             else:
@@ -476,7 +491,7 @@ class ZDVisualization(object):
                     if credentials:
                         source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, source)
                         self._source_credentials.update({source: [ credentials, source_id ]})
-                        with open('data/sources.json', 'w') as sc:
+                        with open('/tmp/sources.json', 'w') as sc:
                             json.dump(self._source_credentials, sc)
                     else:
                         return False

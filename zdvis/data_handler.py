@@ -1,7 +1,7 @@
 import os
 import pickle
 
-_dataFile = 'userdata.pkl'
+_dataFile = '/var/userdata.pkl'
         
 def save_data(userdata):
     """
@@ -17,3 +17,9 @@ def save_data(userdata):
     data.update({userdata['name']:userdata})
     pickle.dump(data, datafile)
     datafile.close()
+
+def load_data():
+    datafile = open(_dataFile, 'rb')
+    data = pickle.load(datafile)
+    datafile.close()
+    return data

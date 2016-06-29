@@ -9,9 +9,7 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
     var list = ["Donut","Packed","Scatter","Pie","Tree","Word"]
 
     ZoomdataSDK.createClient({
-        "credentials": {
-            "key": v_credentials
-        },
+        "credentials": v_credentials,
         "application": {
             "port": v_conf["port"],
             "path": v_conf["path"],

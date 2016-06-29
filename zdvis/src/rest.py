@@ -1,7 +1,6 @@
 import urllib3
 import json
 from urllib.parse import quote
-urllib3.disable_warnings()
 http = urllib3.PoolManager()
 
 def data(resp):
