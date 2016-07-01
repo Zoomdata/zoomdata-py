@@ -135,6 +135,7 @@ class ZDVisualization(object):
                     # existed.
                     if(self._source_credentials.pop(sourceName)):
                         self._update_source_file()
+                    return True
             except:
                 print('Invalid dataframe')
         else:

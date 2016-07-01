@@ -20,11 +20,28 @@ badd +7 zdvis/data_handler.py
 badd +10 zdvis/src/js/render/common_charts.js
 badd +1 zdvis/MANIFEST.in
 badd +1 \'/home/eduardo/Proyectos/AKTIUN/ZDvis/MANIFEST.in\'
-badd +0 MANIFEST.in
+badd +1 MANIFEST.in
 silent! argdel *
+edit zdvis/src/zd.py
 set splitbelow splitright
 wincmd t
 set winheight=1 winwidth=1
+argglobal
+setlocal fdm=manual
+setlocal fde=0
+setlocal fmr={{{,}}}
+setlocal fdi=#
+setlocal fdl=0
+setlocal fml=1
+setlocal fdn=20
+setlocal fen
+silent! normal! zE
+let s:l = 134 - ((12 * winheight(0) + 17) / 35)
+if s:l < 1 | let s:l = 1 | endif
+exe s:l
+normal! zt
+134
+normal! 031|
 tabnext 1
 if exists('s:wipebuf')
   silent exe 'bwipe ' . s:wipebuf
