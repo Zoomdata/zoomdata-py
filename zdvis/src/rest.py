@@ -3,6 +3,8 @@ import json
 from urllib.parse import quote
 http = urllib3.PoolManager()
 
+TIMEOUT_MSG = 'The token for this session has expired, please shutdown your notebook, log out and in again.'
+
 def data(resp):
     return resp.data.decode('ascii')
 
@@ -13,7 +15,11 @@ class RestCalls(object):
         body=json.dumps(connReq['mongo'])
         service = '/api/accounts/'+accountID+'/connections'
         print('Creating connection...')
-        r = http.request('POST', url+service ,headers=headers, body=body)
+        try:
+            r = http.request('POST', url+service ,headers=headers, body=body)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200, 201]:
             print('Connection created')
             return data(r)
@@ -24,7 +30,11 @@ class RestCalls(object):
     def createSource(self, url, headers, accountID, sourceName, connectionName, connReq, sourceReq):
         # Try to get the connection first in case it exists
         service = '/api/accounts/'+accountID+'/connections/name/'+connectionName
-        r = http.request('GET', url+service, headers=headers)
+        try:
+            r = http.request('GET', url+service, headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200]:
             connResponse = data(r)
         elif r.status in [403, 404]:
@@ -53,7 +63,11 @@ class RestCalls(object):
 
     def getUserAccount(self, url, headers, user):
         service = '/api/users/username/'+user
-        r = http.request('GET', url+service ,headers=headers)
+        try:
+            r = http.request('GET', url+service ,headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200]:
             resp= json.loads(data(r))
             href = [l['href'] for l in resp['links'] if l['rel'] == 'account']
@@ -63,7 +77,11 @@ class RestCalls(object):
 
     def getSourcesByAccount(self, url, headers, accountID):
         service = '/api/accounts/'+accountID+'/sources'
-        r = http.request('GET', url+service ,headers=headers)
+        try:
+            r = http.request('GET', url+service ,headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         resp= json.loads(data(r))
         resp = resp.get('data',False)
         sources = []
@@ -78,7 +96,11 @@ class RestCalls(object):
     def getVisualizationsList(self, url, headers):
         """ Get the list of all visualizations allowed by Zoomdata """
         service = '/service/visualizations'
-        r = http.request('GET', url+service, headers=headers)
+        try:
+            r = http.request('GET', url+service, headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200]:
             vis = [{'id': d['id'], 'name': d['name']} for d in json.loads(data(r))]
             return vis
@@ -87,7 +109,11 @@ class RestCalls(object):
 
     def getSourceById(self, url, headers, sourceId):
         service = '/service/sources/'+sourceId
-        r = http.request('GET', url+service, headers=headers)
+        try:
+            r = http.request('GET', url+service, headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200]:
             return json.loads(data(r))
         print(data(r))
@@ -98,7 +124,11 @@ class RestCalls(object):
         service = '/service/sources/key?source='+sourceName.replace(' ','+')
         if token:
             service += '&access_token='+token
-        r = http.request('GET', url+service ,headers=headers)
+        try:
+            r = http.request('GET', url+service ,headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200]:
             resp = json.loads(data(r))
             return resp['id']
@@ -109,7 +139,11 @@ class RestCalls(object):
     def getSourceID(self, url, headers, accountID, sourceName, printError = True):
         # https://pubsdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/name/Ticket%20Sales
         service = '/api/accounts/'+accountID+'/sources/name/'+sourceName.replace(' ','%20')
-        r = http.request('GET', url+service, headers=headers)
+        try:
+            r = http.request('GET', url+service, headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200]:
             resp= json.loads(data(r))
             href = [l['href'] for l in resp['links'] if l['rel'] == 'self']
@@ -129,7 +163,11 @@ class RestCalls(object):
             body = {'name': sourceName, 'sourceParameters':{}}
             #Create the source
             #https://pubsdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/file
-            r = http.request('POST', url+service, headers=headers, body=json.dumps(body))
+            try:
+                r = http.request('POST', url+service, headers=headers, body=json.dumps(body))
+            except MaxRetryError:
+                print(TIMEOUT_MSG)
+                return False
             if r.status in [200, 201]:
                 resp = json.loads(data(r))
                 href = [l['href'] for l in resp['links'] if l['rel'] == 'self']
@@ -148,7 +186,11 @@ class RestCalls(object):
             p = param_format % (param, quote(urlParams[param]))
             params_list.append(p)
         service += '&'.join(params_list)
-        r = http.request('PUT', url+service, headers=headers, body=df)
+        try:
+            r = http.request('PUT', url+service, headers=headers, body=df)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200, 201]:
             print('Done!')
             return True
@@ -158,7 +200,11 @@ class RestCalls(object):
     def updateSourceDefinition(self, url, headers, sourceId, body):
         service = '/service/sources/'+sourceId
         body=json.dumps(body)
-        r = http.request('PATCH', url+service, headers=headers, body=body)
+        try:
+            r = http.request('PATCH', url+service, headers=headers, body=body)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
         if r.status in [200]:
             return True
         print(data(r))
