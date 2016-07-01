@@ -93,9 +93,11 @@ class RestCalls(object):
         print(data(r))
         return False
 
-    def getSourceKey(self, url, headers, sourceName, print_error=True):
+    def getSourceKey(self, url, headers, sourceName, print_error=True, token=False):
         # This method will be useless once oauth be implemented
         service = '/service/sources/key?source='+sourceName.replace(' ','+')
+        if token:
+            service += '&access_token='+token
         r = http.request('GET', url+service ,headers=headers)
         if r.status in [200]:
             resp = json.loads(data(r))

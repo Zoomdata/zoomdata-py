@@ -39,8 +39,10 @@ class ZDVisualization(object):
         protocol = 'https' if config['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, config['host'], config['port'], config['path'])
         self._source_credentials = {}
-        if os.path.exists('/tmp/sources.json'):
-            with open('/tmp/sources.json','r') as sc:
+        self._sources_json_file = '/tmp/sources.json'
+
+        if os.path.exists(self._sources_json_file):
+            with open(self._sources_json_file,'r') as sc:
                 self._source_credentials = json.load(sc)
 
         # User authentication
@@ -122,7 +124,7 @@ class ZDVisualization(object):
                     # Avoid using wrong (deprecated) keys in case an old source with the same name
                     # existed.
                     if(self._source_credentials.pop(sourceName)):
-                        with open('/tmp/sources.json', 'w') as sc:
+                        with open(self._sources_json_file, 'w') as sc:
                             json.dump(self._source_credentials, sc)
             except:
                 print('Invalid dataframe')
@@ -439,7 +441,7 @@ class ZDVisualization(object):
                     self._source_credentials.update({nsource: [ self._credentials, self._source_id ]})
                     vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
                     self._source_charts = [v['name'] for v in vis['visualizations']]
-                    with open('/tmp/sources.json', 'w') as sc:
+                    with open(self._sources_json_file, 'w') as sc:
                         json.dump(self._source_credentials, sc)
                     return True
             else:
@@ -468,6 +470,7 @@ class ZDVisualization(object):
         """
         return self.getData(source, fields=fields, rows=1)
 
+
     def getData(self, source, fields=[], rows=10000):
         """
         Retrieve data from the specified source as a pandas dataframe object.
@@ -491,7 +494,7 @@ class ZDVisualization(object):
                     if credentials:
                         source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, source)
                         self._source_credentials.update({source: [ credentials, source_id ]})
-                        with open('/tmp/sources.json', 'w') as sc:
+                        with open(self._sources_json_file, 'w') as sc:
                             json.dump(self._source_credentials, sc)
                     else:
                         return False
@@ -499,6 +502,14 @@ class ZDVisualization(object):
                     print('You need to authenticate: ZD.auth("user","password")')
                     return False
 
+            #If so far there are no valid credentials it means that oauth is being used
+            if not credentials: 
+                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source, True, self._token)
+                if credentials:
+                    self._source_credentials.update({source: [ credentials, source_id ]})
+                    with open(self._sources_json_file, 'w') as sc:
+                        json.dump(self._source_credentials, sc)
+ 
             # Parse the fields
             self._columns = fields
             if not fields:
