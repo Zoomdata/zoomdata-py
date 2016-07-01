@@ -44,6 +44,11 @@ class ZDVisualization(object):
         if os.path.exists(self._sources_json_file):
             with open(self._sources_json_file,'r') as sc:
                 self._source_credentials = json.load(sc)
+        else: #Create it and leave it there
+            with open(self._sources_json_file, 'w') as sc:
+                json.dump(self._source_credentials, sc)
+            #Change the mode so anyone can use read/write it
+            os.chmod(self._sources_json_file,0o666)
 
         # User authentication
         self._user = ''
