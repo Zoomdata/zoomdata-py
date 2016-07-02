@@ -1,6 +1,7 @@
 import urllib3
 import json
 from urllib.parse import quote
+urllib3.disable_warnings()
 http = urllib3.PoolManager()
 
 TIMEOUT_MSG = 'The token for this session has expired, please shutdown your notebook, log out and in again.'
