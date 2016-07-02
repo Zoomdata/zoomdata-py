@@ -525,7 +525,10 @@ class ZDVisualization(object):
             self._columns = fields
             if not fields:
                 vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
-                fields = [f['name'] for f in vis['objectFields']]
+                if vis:
+                    fields = [f['name'] for f in vis['objectFields']]
+                else:    
+                    return False
             # Websocket request
             socketUrl = self._serverURL + "/websocket?key=" + credentials
             socketUrl = socketUrl.replace('https','wss')

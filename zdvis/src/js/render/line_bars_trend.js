@@ -103,8 +103,8 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
                   if(op2 != ""){ yaxis2.func = op2 }
                    window.viz["dataAccessors"]["Y2 Axis"].setMetric(yaxis2)
               }
-              v_trend.limit = v_defPicker.limit;
               if(!$.isEmptyObject(v_trend)){
+                  v_trend.limit = v_defPicker.limit;
                   if(v_defPicker.unit != ""){
                         v_trend.defaultGranularity = v_defPicker.unit
                         v_trend.func= v_defPicker.unit
