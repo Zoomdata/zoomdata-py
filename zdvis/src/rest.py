@@ -7,7 +7,7 @@ http = urllib3.PoolManager()
 
 TIMEOUT_MSG = '''
 The token for this session has expired, please log out and log in again. \n
-And once logged in make sure to shutdown your notebook before start it by checking\n
+And once logged in make sure to shutdown your notebook before starting it by checking\n
 the notebook and clicking the shutdown button on the menu.
 '''
 
