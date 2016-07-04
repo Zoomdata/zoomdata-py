@@ -1,10 +1,15 @@
 import urllib3
+from urllib3.exceptions import MaxRetryError
 import json
 from urllib.parse import quote
 urllib3.disable_warnings()
 http = urllib3.PoolManager()
 
-TIMEOUT_MSG = 'The token for this session has expired, please shutdown your notebook, log out and in again.'
+TIMEOUT_MSG = '''
+The token for this session has expired, please log out and log in again. \n
+And once logged in make sure to shutdown your notebook before start it by checking\n
+the notebook and clicking the shutdown button on the menu.
+'''
 
 def data(resp):
     return resp.data.decode('ascii')
