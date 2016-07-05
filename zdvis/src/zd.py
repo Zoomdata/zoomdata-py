@@ -62,7 +62,6 @@ class ZDVisualization(object):
         # Visualization attrs
         self._source = ''
         self._chart = chart
-        self.connResp = {}
         self._width = 800
         self._height = 400
         self._renderCount = 0 #To render a different chart each time
@@ -149,19 +148,21 @@ class ZDVisualization(object):
             print('You need to authenticate: ZD.auth("user","password")')
 
     def __getVisualization(self):
-            params = { 'conf': self._conf,
-                       'credentials': self._credentials,
-                       'token': self._token,
-                       'paths': self._paths,
-                       'width': self._width,
-                       'height': self._height,
-                       'source': self._source,
-                       'chart': self._chart,
-                       'query': self._query,
-                       'filters': self._filters,
-                       'variables': self._variables }
-            vr = VisRender(params)
-            return vr.getVisualization(self._renderCount, self._pickers)
+        # Request the source key in case it does not exists, this will allow to 
+        # render the visualization if the notebook is re-opened
+        params = { 'conf': self._conf,
+                   'credentials': self._credentials,
+                   'token': self._token,
+                   'paths': self._paths,
+                   'width': self._width,
+                   'height': self._height,
+                   'source': self._source,
+                   'chart': self._chart,
+                   'query': self._query,
+                   'filters': self._filters,
+                   'variables': self._variables }
+        vr = VisRender(params)
+        return vr.getVisualization(self._renderCount, self._pickers)
 
     def __render(self, pickers, filters):
         if(self._source):
@@ -445,8 +446,8 @@ class ZDVisualization(object):
                 self._source_credentials.pop(nsource)
         else:
             if(self._conf['headers']['Authorization']):
-                #This will change once oauth is implemented, cuz the key won't be needed anymore
-                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], nsource)
+                acc_token = False if self._token == '' else self._token
+                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], nsource, token=acc_token)
                 if credentials:
                     self._source = nsource
                     self._credentials = self._credentials 
@@ -502,8 +503,8 @@ class ZDVisualization(object):
                 source_id = self._source_credentials[source][1] # The id of the source
             else:
                 if(self._conf['headers']['Authorization']):
-                    #This will change once oauth is implemented, cuz the key won't be needed anymore
-                    credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source)
+                    acc_token = False if self._token == '' else self._token
+                    credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source, token=acc_token)
                     if credentials:
                         source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, source)
                         self._source_credentials.update({source: [ credentials, source_id ]})
@@ -513,13 +514,6 @@ class ZDVisualization(object):
                 else:
                     print('You need to authenticate: ZD.auth("user","password")')
                     return False
-
-            #If so far there are no valid credentials it means that oauth is being used
-            if not credentials: 
-                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source, True, self._token)
-                if credentials:
-                    self._source_credentials.update({source: [ credentials, source_id ]})
-                    self._update_source_file()
  
             # Parse the fields
             self._columns = fields

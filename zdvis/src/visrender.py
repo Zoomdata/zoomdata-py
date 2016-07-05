@@ -1,8 +1,6 @@
 #/usr/bin/python3
 import os
-import urllib3
 import json
-import base64
 from .jsbuilder import JSBuilder
 from .templates import Template
 from IPython.display import HTML
@@ -74,8 +72,8 @@ class VisRender(object):
         tools = self.getJSTools()
         defPicker = js.var('v_defPicker', js.s(defPicker))
         creds = {'key': self.credentials }
-        if self.token != '':
-            creds = {'access_token': self.token}
+        # if self.token != '':
+            # creds = {'access_token': self.token}
         cred = js.var('v_credentials', js.s(creds))
         conf = js.var('v_conf', js.s(self.conf))
         source = js.var('v_source', js.s(self.source))
