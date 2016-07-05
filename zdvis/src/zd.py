@@ -138,11 +138,14 @@ class ZDVisualization(object):
                     # existed.
                     self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
                     acc_token = False if self._token == '' else self._token
-                    self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], nsource, token=acc_token)
+                    self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
                     self._source = sourceName
                     self._source_credentials.update({sourceName: [ self._credentials, self._source_id ]})
                     self._update_source_file()
-                    return True
+                    vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+                    if vis:
+                        self._source_charts = [v['name'] for v in vis['visualizations']]
+                        self._update_source_file()
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
@@ -420,7 +423,7 @@ class ZDVisualization(object):
             if not self._source:
                 print('You need to define a source before setting the chart')
             else:
-                if not (self._allowed_visuals):
+                if not self._allowed_visuals:
                     self._allowed_visuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
                 visualsNames = [v['name'] for v in self._allowed_visuals]
                 if nchart in visualsNames: # If is an allowed visualization type
