@@ -328,8 +328,7 @@ class ZDVisualization(object):
             vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
             if vis:
                 print('')
-                print('mongo host: '+self._conf['mongoServer'])
-                print('mongo port: '+ str(self._conf['mongoPort']))
+                print('Storage: '+vis['type'])
                 for key in vis['storageConfiguration']:
                     print(key+': '+str(vis['storageConfiguration'][key]))
         else:
