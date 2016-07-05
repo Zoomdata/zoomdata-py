@@ -5,7 +5,6 @@ import json
 import base64
 import pickle
 import pandas as pd
-from time import sleep
 from .rest import RestCalls
 from .visdefinition import VisDefinition
 from .visrender import VisRender

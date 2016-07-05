@@ -1,11 +1,14 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
+
 setup(
         name = 'zdvis',
-        version = '1.0.0',
-        packages = ['zdvis','zdvis/src'],
-        package_data={'js': ['zdvis/src/js/*'], 'visdef': ['zdvis/src/js/visdef/*'], 'render':['zdvis/src/js/render/*']},
+        version = '0.0.1',
+        packages = find_packages(),
+        install_requires=[ 'pandas', 'urllib3', 'websockets'],
         author = 'Aktiun',
+        keywords=['zdvis','aktiun','zoomdata','jupyter','jupyterhub'],
         author_email = 'eduardo@aktiun.com',
         url = 'https://github.com/Zoomdata/ZDvis',
-        description = 'Integrates Zoomdata visualizations into Jupyter notebooks'
+        description = 'Integrates Zoomdata visualizations into Jupyter notebooks',
+        include_package_data=True,
         )
