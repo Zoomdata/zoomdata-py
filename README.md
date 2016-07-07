@@ -1,6 +1,6 @@
 # Jupyter - ZDvis
 
-ZDVIS is a python3 module that allows to perform different operations using the public Zoomdata SDK straight into your Jupyter notebooks (http://jupyter.org) such as render visualizations, source data fetching, sources analysis, etc.
+ZDVIS is a python3 module that puts the power of Zoomdata straight into your Jupyter notebooks (http://jupyter.org).  For example, users can register pandas dataframes as Zoomdata sources, easily render many types of visualizations, and create pandas dataframes from any Zoomdata source.
 
 ## Python dependencies
 
@@ -17,11 +17,11 @@ Then start your jupyter server
 
 ## Usage
 
-The entire functionality of the Zdvis module comes from the ZD object which is the main interface for every supported Zoomdata services within this module. In order to be able to use the ZD methods, you must authenticate first using one of this ways:
+The entire functionality of the Zdvis module comes from the ZD object which is the main interface for every supported Zoomdata services within this module. In order to be able to use the ZD methods, you must authenticate first using one of the following ways:
 
 ##### 1. Basic auth
 
-This type of authentication is focused mainly when you want to use the ZD module in your local Jupyter server. First you need to import from the module the ZD object into your notebook as any other python module and then specify some valid zoomdata credentials (for testing you may use zoomdata:zoomdata) using the auth() method from the ZD object.
+This type of authentication is useful mainly when you want to use the ZD module in your local Jupyter server. First you need to import from the module the ZD object into your notebook as any other python module and then specify some valid zoomdata credentials (for testing you may use zoomdata:zoomdata) using the auth() method from the ZD object.
 
 ```
 from zdvis import ZD
@@ -43,12 +43,12 @@ As oauth is token based and the token has an expiration time, users may need to 
 
 
 #### Getting ZD object help
-You can inspect attributes and methods from the ZD object as well as get help for each one of them as in any normal Ipython session: by pressing the `tab` key as autocomplete for `ZD.` and adding a question mark `?` at the end of a attr/method to get the docstring.
+You can inspect attributes and methods of the ZD object by pressing the `tab` key as autocomplete for `ZD.` You can get help for them by adding a question mark `?` at the end of attributes and methods to obtain their docstring.
 
 
 #### Visualizations
 
-Visualizations are one of the main and awsome things you can do width this module. It allows you to bring almost any available visualization from a Zoomdata source into your notebook. There are different ways to render visualizations:
+Visualizations are one of the main features.  This module allows you to bring many available visualization from a Zoomdata source into your notebook. There are different ways to render visualizations:
 
 ##### graph()
 
@@ -58,7 +58,7 @@ This method takes two required parameters: the source and the chart type. It als
 ZD.graph('Ticket Sales','Bars')
 ```
 
-Graph will complaint in case the chart type is incorrect, and will give the available charts for that specific source. There are also some shortcuts for the most common visualizations:
+Graph will complain if the chart type is incorrect and will print the available charts for the specific source. There are also some shortcuts for the most common visualizations:
 
 ```
 ZD.pie()
@@ -69,7 +69,7 @@ ZD.treeMap()
 ZD.heatMap()
 ```
 
-These shortcuts, takes as parameters the same that the graph() function except for the chart type. They also don't need the source parameter if the graph() or the setSource() functions were used before as the will use the last used source.
+These shortcuts take the same parameters as the the graph() function except for the chart type. These shortcuts also don't need the source parameter if the graph() or the setSource() functions were used before as they will use the last used source.
 
 
 #### Working with sources
@@ -77,26 +77,26 @@ These shortcuts, takes as parameters the same that the graph() function except f
 
 ##### sources()
 
-This is the first utility to work with sources This method retrieves the list of available sources at zoomdata that you can work withr. Takes no parameter
+This is the first function to use when working with sources.  It retrieves the list of available sources in Zoomdata for the authenticated user. Takes no parameters.
 
 ##### setSource()
-Set a source to work with. Takes the source name as parameter.
+It sets a source to work with. Takes the source name as parameter.
 
 ##### fields()
 Retrieves the fields of the source specified by setSource() or the last one used by the graph() method.
 
 ##### getData()
-This methods retrieves a pandas dataframe object containing data from the given source. It takes as a required parameter the source. It also accepts the fields to retrieve and the limit of rows. By the default all the fields will be fetched with a limit of 1,000,000 rows.
+This methods retrieves a pandas dataframe object with the data from the given Zoomdata source. It takes the Zoomdata source name as a required parameter.  It also accepts the fields to retrieve and the limit of rows. By the default all the fields will be fetched with a limit of 1,000,000 rows.
 
 ```
 ZD.getData('Ticket Sales',['catname','venuestate'],100)
 ```
 
 ##### first()
-This is a shortcut to get only the first row from a source. Takes as parameter the source and optionally the fields. Is the same as specifiying getData with limit 1.
+This is a shortcut to get only the first row from a source.  It takes the Zoomdata source name as a required parameter and optionally the fields. It is equivalent to specifiying getData with limit 1.
 
 ##### register()
-This will allow you to create a new Zoomdata source from a dataframe. Commonly a pandas dataframe is used.
+This function allows users to create a new Zoomdata source from a dataframe. Usually, this is a pandas dataframe.
 
 ```
 ZD.register('My source name', dataframe_object)
