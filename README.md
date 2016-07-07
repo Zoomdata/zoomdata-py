@@ -30,7 +30,16 @@ ZD.auth("zoomdataserver","username", "password")
 
 
 ##### 2. Oauth2
-This type of authentication is mainly focused on a multi-user environment. Is supported by the Zoomdata oauth2 service and is only available using the [zd-jupyterhub-oauth](https://github.com/Zoomdata/zd-jupyterhub-oauth2) project. Using this authentication type, once a notebook is opened or created the ZD object will be automatically available with the respective user credentials. Please refer to the project page for more information.
+This type of authentication is mainly focused on a multi-user environment using the Zoomdata oauth2 service. Using this authentication type, when a notebook is opened or created the ZD object will be automatically available with the respective user credentials. Also it allows to to do all of this from within Zoomdata. Implementing this authentication requires the aid of other projects:
+
+[Jupyterhub](https://github.com/Zoomdata/jupyterhub) 
+[zd-jupyterhub-oauth](https://github.com/Zoomdata/zd-jupyterhub-oauth2) 
+
+Please refer to the projects pages for more information on how to deploy the integration.
+
+##### Note about using ZDvis with Zoomdata Oauth2
+
+As oauth is token based and the token has an expiration time, users may need to log out from the jupyterhub session (same that Zoomdata session) and log back in after some period of inactivity to get a new token.  It's very important to note that this only affects the jupyterhub session. In order to also affect the notebook you were working on, you must shutdown this notebook by checking the notebook (it should be in green) and then clicking the 'shutdown' button on the menu bar. This will restart the notebook (your code won't be lost) and once you open it again, it will be aware of the new token.
 
 
 #### Getting ZD object help
