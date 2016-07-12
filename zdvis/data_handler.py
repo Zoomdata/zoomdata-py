@@ -3,7 +3,7 @@ import pickle
 
 _dataFile = '/var/userdata.pkl'
         
-def save_data(userdata):
+def saveUserData(userdata):
     """
     This function saves the data sent from oauthenticator/zoomdata.py
     """
@@ -18,8 +18,13 @@ def save_data(userdata):
     pickle.dump(data, datafile)
     datafile.close()
 
-def load_data():
+def loadUserData(user=False):
+    """
+    Load the auth data for a user, if no user is specified all data will be returned
+    """
     datafile = open(_dataFile, 'rb')
     data = pickle.load(datafile)
     datafile.close()
+    if user:
+        return data.get(user, False)
     return data
