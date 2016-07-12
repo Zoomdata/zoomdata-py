@@ -216,3 +216,16 @@ class RestCalls(object):
         print(data(r))
         return False
 
+    def getDashboardData(self, url, dashboardId, token):
+        service = '/service/bookmarks/%s?access_token=%s' % (dashboardId, token)
+        try:
+            r = http.request('GET', url+service) 
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
+        if r.status in [200]:
+            print(r)
+            resp= json.loads(data(r))
+            return resp
+        print(data(r))
+        return False
