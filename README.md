@@ -32,9 +32,9 @@ ZD.auth("zoomdataserver","username", "password")
 ##### 2. Oauth2
 This type of authentication is mainly focused on a multi-user environment using the Zoomdata oauth2 service. Using this authentication type, when a notebook is opened or created the ZD object will be automatically available with the respective user credentials. Also it allows to to do all of this from within Zoomdata. Implementing this authentication requires the aid of other projects:
 
-[Jupyter Notebook - Zoomdata](https://github.com/Zoomdata/notebook) 
+[Jupyter Notebook - Zoomdata](https://github.com/Zoomdata/zd-notebook) 
 
-[Jupyterhub](https://github.com/Zoomdata/jupyterhub) 
+[Jupyterhub](https://github.com/Zoomdata/zd-jupyterhub) 
 
 [Oauthenticator](https://github.com/jupyterhub/oauthenticator) 
 
