@@ -124,28 +124,26 @@ class ZDVisualization(object):
                           'includesNewFields':'true' }
             #Convert dataframe from whatever it is to csv
             print('Parsing data...')
-            parsed = True
             try:
                 df = dataframe.to_csv()
             except:
-                parsed = False
                 print('Invalid dataframe')
-            if parsed:
-                resp = rest.createSourceFromData(self._serverURL, self._conf['headers'], \
-                                                self._account, sourceName, df, urlParams)
-                if resp:
-                    # Avoid using wrong (deprecated) keys in case an old source with the same name
-                    # existed.
-                    self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
-                    acc_token = False if self._token == '' else self._token
-                    self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
-                    self._source = sourceName
-                    self._source_credentials.update({sourceName: [ self._credentials, self._source_id ]})
+
+            resp = rest.createSourceFromData(self._serverURL, self._conf['headers'], \
+                                            self._account, sourceName, df, urlParams)
+            if resp:
+                # Avoid using wrong (deprecated) keys in case an old source with the same name
+                # existed.
+                self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
+                acc_token = False if self._token == '' else self._token
+                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
+                self._source = sourceName
+                self._source_credentials.update({sourceName: [ self._credentials, self._source_id ]})
+                self._update_source_file()
+                vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+                if vis:
+                    self._source_charts = [v['name'] for v in vis['visualizations']]
                     self._update_source_file()
-                    vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
-                    if vis:
-                        self._source_charts = [v['name'] for v in vis['visualizations']]
-                        self._update_source_file()
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
