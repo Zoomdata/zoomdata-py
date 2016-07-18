@@ -5,6 +5,7 @@ import json
 import base64
 import pickle
 import pandas as pd
+from time import sleep
 from .rest import RestCalls
 from .visdefinition import VisDefinition
 from .visrender import VisRender
@@ -57,7 +58,6 @@ class ZDVisualization(object):
         # Dataframe fetching attrs
         self._dframe= ''
         self._logcount = 0
-        self._columns= []
         # Visualization attrs
         self._source = ''
         self._chart = chart
@@ -73,6 +73,7 @@ class ZDVisualization(object):
         self._variables = {}
         self._filters = {} # Filters defined by the user to narrow visualization results
         self._pickers = {} # Default pickers values for the visualization
+        self._rawVisualData = [] 
         #Attrs for new source/collection creation
         self._connReq = connReq
         self._sourceReq = sourceReq
@@ -514,6 +515,43 @@ class ZDVisualization(object):
             - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified
             - rows: Integer (optional). The limit of rows fetched. Default is 10,000. Top limit is 1,000,000.
         """
+        return self._getWebsocketData(source, fields=fields, rows=rows)
+
+    def getVisualData(self):
+        """
+        Returns the aggregated data from the last rendered visualization as a pandas dataframe object.
+        """
+        dfParsed = []
+        columns = []
+        opKeys = ['sum','avg','max','min']
+        print("Retrieving data...")
+        sleep(3) #Time enough for the visualization to be rendered
+        if self._rawVisualData:
+            columns.extend(self._rawVisualData['columns'])
+            for obj in self._rawVisualData['data']:
+                row = []
+                for attr in obj['group']:
+                    row.append(attr)
+                metrics = obj['current'].get('metrics',False)
+                if metrics:
+                    for m in  metrics:
+                        for op in opKeys:
+                            if metrics[m].get(op, False):
+                                row.append(metrics[m][op])
+                                metricName = '%s(%s)' % (m, op)
+                                if metricName not in columns:
+                                    columns.append(metricName)
+                if obj['current'].get('count',False):
+                    row.append(obj['current']['count'])
+                    if 'count' not in columns:
+                        columns.append('count')
+                dfParsed.append(row)
+            print("Done")
+            return pd.DataFrame(dfParsed, columns=columns)
+        print('Please Re-render the last visualization by executing the respective cell to get also the aggregated data')
+
+
+    def _getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}):
         try:
             import ssl
             from websocket import create_connection
@@ -529,7 +567,6 @@ class ZDVisualization(object):
                     print('You need to authenticate: ZD.auth("user","password")')
                     return False
 
-
             if not credentials:
                 acc_token = False if self._token == '' else self._token
                 credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], source, token=acc_token)
@@ -538,9 +575,8 @@ class ZDVisualization(object):
                 self._source_credentials.update({source: [ credentials, source_id ]})
                 self._update_source_file()
  
-            # Parse the fields
-            self._columns = fields
-            if not fields:
+            # Parse the fields in case they are for the not visual
+            if not fields and not visual:
                 vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
                 if vis:
                     fields = [f['name'] for f in vis['objectFields']]
@@ -554,14 +590,16 @@ class ZDVisualization(object):
             request = { "type": "START_VIS",
                         "cid": "f3020fa6e9339ee5829f6e2caa8d2e40",
                         "request": {
-                           "streamSourceId": source_id,
-                           "cfg": { 
-                                   'tz': 'EST',
-                                   'fields': fields,
-                                   'limit': rows
-                                   }
+                               "streamSourceId": source_id,
+                               "cfg": {}
                             }
                      }
+            if not visual:
+                conf = {'tz':'EST', 'fields':fields, 'limit':rows}
+            else:
+                conf = {"filters":[], "group": config}
+                request['request'].update({'time':{'timeField':'_ts'}})
+            request['request']['cfg'].update(conf)
             ws.send(js.s(request))
             req_done = False
             dataframe = []
@@ -577,11 +615,36 @@ class ZDVisualization(object):
                 frame = eval(frame)
                 dataframe.extend(frame.get('data',[]))
 
+            #Parsing takes a little more due to they're different for each visuals
             if maxloop == 30: # There was an error
                 ws.close()
 
             if dataframe:
-                return pd.DataFrame(dataframe, columns=fields)
+                if visual: 
+                    dfParsed = []
+                    columns = []
+                    fields = [f['name'] for f in config['fields']]
+                    opKeys = ['sum','avg','max','min']
+                    attrName = 'category'
+                    for obj in dataframe:
+                        row = []
+                        for attr in obj['group']:
+                            row.append(attr)
+                        metrics = obj['current']['metrics']
+                        for m in  metrics:
+                            for op in opKeys:
+                                if metrics[m].get(op, False):
+                                    row.append(metrics[m][op])
+                                    metricName = '%s(%s)' % (m, op)
+                                    if metricName not in fields:
+                                        fields.append(metricName)
+                        row.append(obj['current']['count'])
+                        dfParsed.append(row)
+                    fields.append('count')
+                    dataframe = dfParsed
+                if fields:
+                    return pd.DataFrame(dataframe, columns=fields)
+                return pd.DataFrame(dataframe)
             print('No data was returned')
             return False
 

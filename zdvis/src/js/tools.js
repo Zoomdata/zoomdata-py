@@ -27,3 +27,30 @@ function inList(list, string){
     })
     return found
 }
+
+function getData(){
+    rawData = window.viz.thread.getData()
+    if(rawData.length == 0){
+        console.log("Waiting for data")
+        setTimeout(getData,50)
+    }
+    else{
+        pyvar = {"data":false, "columns":[]}
+        acc = window.viz.dataAccessors.getDimensionAccessors()
+        for(var i=0;i < acc.length;i++){
+            if(acc[i].hasOwnProperty("Multi Group By")){
+                groups = acc[i]["Multi Group By"].getGroups()
+                for(var g=0; g < groups.length; g++){
+                    pyvar.columns.push(groups[g].name)
+                }
+            }
+            else if(acc[i].hasOwnProperty("Group By")){
+                group = acc[i]["Group By"].getGroup()
+                pyvar.columns.push(group.name)    
+            }
+        }
+        pyvar.data = rawData
+        console.log(pyvar)
+        parent.kernel.execute("ZD._rawVisualData = "+ JSON.stringify(pyvar))
+    }
+}

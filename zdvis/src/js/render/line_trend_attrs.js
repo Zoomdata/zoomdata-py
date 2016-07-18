@@ -126,6 +126,7 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
             accessor.resetGroups([v_group, v_trend])
 
             $("#load-message").html("");
+            getData()
         }); //done
     }); //then
 

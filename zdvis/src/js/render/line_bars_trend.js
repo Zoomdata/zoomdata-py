@@ -113,6 +113,7 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
               }
 
             $("#load-message").html("");
+            getData()
         }); //done
     }); //then
 
