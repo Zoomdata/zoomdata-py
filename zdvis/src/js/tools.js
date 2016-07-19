@@ -48,6 +48,10 @@ function getData(){
                 group = acc[i]["Group By"].getGroup()
                 pyvar.columns.push(group.name)    
             }
+            else if(acc[i].hasOwnProperty("Trend Attribute")){
+                group = acc[i]["Trend Attribute"].getGroup()
+                pyvar.columns.push(group.name)    
+            }
         }
         pyvar.data = rawData
         console.log(pyvar)
