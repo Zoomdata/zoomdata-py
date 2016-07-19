@@ -518,38 +518,11 @@ class ZDVisualization(object):
         """
         return self._getWebsocketData(source, fields=fields, rows=rows)
 
-    def getVisualData(self):
+    def getVisualData(self, source, conf):
         """
         Returns the aggregated data from the last rendered visualization as a pandas dataframe object.
         """
-        dfParsed = []
-        columns = []
-        opKeys = ['sum','avg','max','min']
-        print("Retrieving data...")
-        sleep(3) #Time enough for the visualization to be rendered
-        if self._rawVisualData:
-            columns.extend(self._rawVisualData['columns'])
-            for obj in self._rawVisualData['data']:
-                row = []
-                for attr in obj['group']:
-                    row.append(attr)
-                metrics = obj['current'].get('metrics',False)
-                if metrics:
-                    for m in  metrics:
-                        for op in opKeys:
-                            if metrics[m].get(op, False):
-                                row.append(metrics[m][op])
-                                metricName = '%s(%s)' % (m, op)
-                                if metricName not in columns:
-                                    columns.append(metricName)
-                if obj['current'].get('count',False):
-                    row.append(obj['current']['count'])
-                    if 'count' not in columns:
-                        columns.append('count')
-                dfParsed.append(row)
-            print("Done")
-            return pd.DataFrame(dfParsed, columns=columns)
-        print('Please Re-render the last visualization by executing the respective cell to get also the aggregated data')
+        return self._getWebsocketData(source, visual=True, config=conf)
 
 
     def _getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}):
@@ -599,7 +572,7 @@ class ZDVisualization(object):
                 conf = {'tz':'EST', 'fields':fields, 'limit':rows}
             else:
                 conf = {"filters":[], "group": config}
-                request['request'].update({'time':{'timeField':'_ts'}})
+                #request['request'].update({'time':{'timeField':'_ts'}})
             request['request']['cfg'].update(conf)
             ws.send(js.s(request))
             req_done = False
@@ -631,17 +604,20 @@ class ZDVisualization(object):
                         row = []
                         for attr in obj['group']:
                             row.append(attr)
-                        metrics = obj['current']['metrics']
-                        for m in  metrics:
-                            for op in opKeys:
-                                if metrics[m].get(op, False):
-                                    row.append(metrics[m][op])
-                                    metricName = '%s(%s)' % (m, op)
-                                    if metricName not in fields:
-                                        fields.append(metricName)
-                        row.append(obj['current']['count'])
+                        metrics = obj['current'].get('metrics',False)
+                        if metrics:
+                            for m in  metrics:
+                                for op in opKeys:
+                                    if metrics[m].get(op, False):
+                                        row.append(metrics[m][op])
+                                        metricName = '%s(%s)' % (m, op)
+                                        if metricName not in fields:
+                                            fields.append(metricName)
+                        if obj['current'].get('count', False):
+                            row.append(obj['current']['count'])
+                            if 'count' not in fields:
+                                fields.append('count')
                         dfParsed.append(row)
-                    fields.append('count')
                     dataframe = dfParsed
                 if fields:
                     return pd.DataFrame(dataframe, columns=fields)

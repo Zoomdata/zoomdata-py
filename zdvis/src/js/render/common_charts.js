@@ -118,7 +118,6 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
                        else{ accessor.resetGroups([v_group]) }
                   }
                   $("#load-message").html("");
-                  getData()
         }); //done function
     }); //then
 
