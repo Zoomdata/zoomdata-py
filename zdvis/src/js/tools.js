@@ -51,6 +51,10 @@ function getData(){
         }
         pyvar.data = rawData
         console.log(pyvar)
-        parent.kernel.execute("ZD._rawVisualData = "+ JSON.stringify(pyvar))
+        pyvar = JSON.stringify(pyvar)
+        pyvar = pyvar.replace("null","\"Null\"")
+        pyvar = pyvar.replace("false","False")
+        pyvar = pyvar.replace("true","True")
+        parent.kernel.execute("ZD._rawVisualData = "+ pyvar)
     }
 }

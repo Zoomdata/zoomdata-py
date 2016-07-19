@@ -177,6 +177,7 @@ class ZDVisualization(object):
             self._pickers = pickers
             self._filters = filters
             iframe = self.__getVisualization()[0]
+            self._rawVisualData = []
             self._renderCount += 1
             return HTML(iframe)
         else:
