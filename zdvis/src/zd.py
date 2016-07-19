@@ -73,7 +73,6 @@ class ZDVisualization(object):
         self._variables = {}
         self._filters = {} # Filters defined by the user to narrow visualization results
         self._pickers = {} # Default pickers values for the visualization
-        self._rawVisualData = [] 
         #Attrs for new source/collection creation
         self._connReq = connReq
         self._sourceReq = sourceReq
@@ -177,7 +176,6 @@ class ZDVisualization(object):
             self._pickers = pickers
             self._filters = filters
             iframe = self.__getVisualization()[0]
-            self._rawVisualData = []
             self._renderCount += 1
             return HTML(iframe)
         else:
