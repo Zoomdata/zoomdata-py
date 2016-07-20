@@ -496,34 +496,46 @@ class ZDVisualization(object):
         protocol = 'https' if self._conf['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, self._conf['host'], self._conf['port'], self._conf['path'])
 
-    def first(self, source, fields=[]):
+    def first(self, source, fields=[], filters=[]):
         """
         Retrieve the first data row from the specified source as a pandas dataframe object.
         Parameters:
-            - source: String. The name of the source
-            - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified
+            - source: String. The name of the source.
+            - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified.
+            - filters: List of dicts (optional). A list of filters for the requested data. Ex:
+                filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
         """
-        return self.getData(source, fields=fields, rows=1)
+        return self.getData(source, fields=fields, rows=1, filters=filters)
 
 
-    def getData(self, source, fields=[], rows=10000):
+    def getData(self, source, fields=[], rows=10000, filters=[]):
         """
         Retrieve data from the specified source as a pandas dataframe object.
         Parameters:
-            - source: String. The name of the source
-            - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified
+            - source: String. The name of the source.
+            - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified.
             - rows: Integer (optional). The limit of rows fetched. Default is 10,000. Top limit is 1,000,000.
+            - filters: List of dicts (optional). A list of filters for the requested data. Ex:
+                filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
         """
-        return self._getWebsocketData(source, fields=fields, rows=rows)
+        return self._getWebsocketData(source, fields=fields, rows=rows, filters=filters)
 
-    def getVisualData(self, source, conf):
+    def getVisualData(self, source, conf, filters=[]):
         """
-        Returns the aggregated data from the last rendered visualization as a pandas dataframe object.
+        Returns the aggregated data (data used for an specific visualization) for a given source.
+        Parameters:
+            - source. String. The name of the source.
+            - conf. Dictionary. The configuration to fetch the aggregated data.
+                conf = {"fields": [{"name": "hotel_name", "limit": 20, "sort": {"dir": "desc", "name": "count"}}], "metrics": [{"func": "count", "name": "*"}]}
+            - filters: List of dicts (optional). A list of filters for the aggregated data. Ex:
+                filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
         """
-        return self._getWebsocketData(source, visual=True, config=conf)
+        if not conf or not isinstance(conf,(dict)):
+            print("The configuration parameter is required, and it has to be a python dict")
+            return False
+        return self._getWebsocketData(source, visual=True, config=conf, filters=filters)
 
-
-    def _getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}):
+    def _getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}, filters=[]):
         try:
             import ssl
             from websocket import create_connection
@@ -567,9 +579,9 @@ class ZDVisualization(object):
                             }
                      }
             if not visual:
-                conf = {'tz':'EST', 'fields':fields, 'limit':rows}
+                conf = {'tz':'EST', 'fields':fields, 'limit':rows, 'filters':filters}
             else:
-                conf = {"filters":[], "group": config}
+                conf = {"filters":filters, "group": config}
                 #request['request'].update({'time':{'timeField':'_ts'}})
             request['request']['cfg'].update(conf)
             ws.send(js.s(request))
