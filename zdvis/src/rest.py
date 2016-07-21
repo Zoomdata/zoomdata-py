@@ -90,14 +90,11 @@ class RestCalls(object):
             return False
         resp= json.loads(data(r))
         resp = resp.get('data',False)
-        sources = []
         if resp:
-            count = 1
-            for d in resp:
-                print(str(count) +'. '+d['name'])
-                count += 1
+            return [d['name'] for d in resp]
         else: 
             print(resp)
+            return False
 
     def getVisualizationsList(self, url, headers):
         """ Get the list of all visualizations allowed by Zoomdata """
@@ -159,11 +156,13 @@ class RestCalls(object):
             print(data(r))
         return False
     
-    def createSourceFromData(self, url, headers, accountId, sourceName, df, urlParams={}):
-        # Creates or uses a source to populate it with data (from a dataframe or file without creating collections)
+    def createSourceFromData(self, url, headers, accountId, sourceName, df, urlParams={}, replace=False):
+        # Creates or uses a source to populate it with data (from a dataframe)
         # Check if the source exists
         sourceId = self.getSourceID(url, headers, accountId, sourceName, printError=False)
+        newSource = False
         if not sourceId:
+            newSource = True
             print('Creating source "'+sourceName+'"...')
             service = '/api/accounts/'+accountId+'/sources/file'
             body = {'name': sourceName, 'sourceParameters':{}}
@@ -173,7 +172,7 @@ class RestCalls(object):
                 r = http.request('POST', url+service, headers=headers, body=json.dumps(body))
             except MaxRetryError:
                 print(TIMEOUT_MSG)
-                return False
+                return False, False
             if r.status in [200, 201]:
                 resp = json.loads(data(r))
                 href = [l['href'] for l in resp['links'] if l['rel'] == 'self']
@@ -182,9 +181,18 @@ class RestCalls(object):
                 print('Source with id "'+sourceId+'" sucessfully created')
             else:
                 print(data(r))
-                return False
+                return False, False
+        else:
+            if replace: #Source data will be replaced instead of appended
+                print('Cleaning data from "'+sourceName+'"...')
+                service = '/service/sources/data/'+sourceId
+                try:
+                    r = http.request('DELETE', url+service, headers=headers)
+                except MaxRetryError:
+                    print(TIMEOUT_MSG)
+                    return False, False
         #Populate the source with the specified data
-        print('Populating source with data...')
+        print('Populating source with new data...')
         service='/api/sources/'+sourceId+'/data?'
         param_format = '%s=%s'
         params_list = []
@@ -196,12 +204,12 @@ class RestCalls(object):
             r = http.request('PUT', url+service, headers=headers, body=df)
         except MaxRetryError:
             print(TIMEOUT_MSG)
-            return False
+            return False, False
         if r.status in [200, 201]:
             print('Done!')
-            return True
+            return True, newSource
         print(data(r))
-        return False
+        return False, False
 
     def updateSourceDefinition(self, url, headers, sourceId, body):
         service = '/service/sources/'+sourceId

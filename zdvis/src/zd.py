@@ -112,11 +112,30 @@ class ZDVisualization(object):
             self._conf['headers']['Authorization'] = key
 
     def register(self, sourceName, dataframe): 
-        """Creates a new Zoomdata source using the specified parameters:
-                Parameters:
-                    sourceName: The name given for the new source
-                    dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
+        """Creates a new Zoomdata source or updates an existing one. If the source exists all data will be
+           replaced (overwrite) with the new data. The source structure (field_names/columns) will be preserved.
+            Parameters:
+                sourceName: The name of the source to be created / update.
+                dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
         """
+        self.__sourceData(sourceName, dataframe, True)
+
+    def append(self, sourceName, dataframe): 
+        """Updates a source by appending the new data to the existing one.
+           Parameters:
+                sourceName: The name of the source to update.
+                dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
+        """
+        if(self._conf['headers']['Authorization']):
+            sources = rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._account)
+            if sourceName not in sources:  
+                print('%s is not a valid source. Execute ZD.sources() to get a list of available sources' % sourceName)
+            else:
+                self.__sourceData(sourceName, dataframe, False)
+        else:
+            print('You need to authenticate: ZD.auth("user","password")')
+
+    def __sourceData(self, sourceName, dataframe, replace): 
         if(self._conf['headers']['Authorization']):
             urlParams = { 'separator':',',
                           'contentType':'text/csv',
@@ -125,15 +144,20 @@ class ZDVisualization(object):
             #Convert dataframe from whatever it is to csv
             print('Parsing data...')
             try:
-                df = dataframe.to_csv()
+                df = dataframe.to_csv() 
+                #If not corrected, pandas adds a column with a row counter. This column must not be part of the source data
+                if df[0] == ',':
+                    rows = df.split('\n')
+                    rows = [r.split(',',1)[-1] for r in rows]
+                    df = '\n'.join(rows)
             except:
                 print('Invalid dataframe')
 
-            resp = rest.createSourceFromData(self._serverURL, self._conf['headers'], \
-                                            self._account, sourceName, df, urlParams)
-            if resp:
+            resp, upd = rest.createSourceFromData(self._serverURL, self._conf['headers'], \
+                                            self._account, sourceName, df, urlParams, replace)
+            if resp and upd:
                 # Avoid using wrong (deprecated) keys in case an old source with the same name
-                # existed.
+                # existed. This is only for new sources
                 self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
                 acc_token = False if self._token == '' else self._token
                 self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
@@ -150,7 +174,12 @@ class ZDVisualization(object):
     def sources(self):
         """ List the availables sources for the account"""
         if(self._conf['headers']['Authorization']):
-            rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._account)
+            sources = rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._account)
+            if sources:
+                count = 1
+                for s in sources:
+                    print(str(count)+'. '+s)
+                    count += 1
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
@@ -404,7 +433,7 @@ class ZDVisualization(object):
                     if result:
                         self._source_charts.append(name)
                     else:
-                        print('There where error or perhaps the add/update feature is not supported yet for this chart')
+                        print('Error: Probably the add/update feature is not supported yet for this chart type.')
 
             else:
                 print('You must define a source before setting a new visualization')
