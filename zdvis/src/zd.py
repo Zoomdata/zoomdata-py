@@ -91,7 +91,7 @@ class ZDVisualization(object):
         self._account = rest.getUserAccount(self._serverURL, self._conf['headers'], user)
         self._user = user
 
-    def _update_source_file(self):
+    def __updateSourceFile(self):
         with open(self._sources_json_file, 'w') as sc:
             json.dump(self._source_credentials, sc)
 
@@ -139,11 +139,11 @@ class ZDVisualization(object):
                 self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
                 self._source = sourceName
                 self._source_credentials.update({sourceName: [ self._credentials, self._source_id ]})
-                self._update_source_file()
+                self.__updateSourceFile()
                 vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
                 if vis:
                     self._source_charts = [v['name'] for v in vis['visualizations']]
-                    self._update_source_file()
+                    self.__updateSourceFile()
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
@@ -469,11 +469,11 @@ class ZDVisualization(object):
             vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
             if vis:
                 self._source_charts = [v['name'] for v in vis['visualizations']]
-                self._update_source_file()
+                self.__updateSourceFile()
                 return True
             else: # If not vis it means that source was deleted from zoomdata
                 self._source_credentials.pop(nsource)
-                self._update_source_file()
+                self.__updateSourceFile()
                 print('Some problems were found trying to set up this source, perhaps it was deleted from Zoomdata')
                 return False 
 
@@ -518,7 +518,7 @@ class ZDVisualization(object):
             - filters: List of dicts (optional). A list of filters for the requested data. Ex:
                 filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
         """
-        return self._getWebsocketData(source, fields=fields, rows=rows, filters=filters)
+        return self.__getWebsocketData(source, fields=fields, rows=rows, filters=filters)
 
     def getVisualData(self, source, conf, filters=[]):
         """
@@ -533,9 +533,9 @@ class ZDVisualization(object):
         if not conf or not isinstance(conf,(dict)):
             print("The configuration parameter is required, and it has to be a python dict")
             return False
-        return self._getWebsocketData(source, visual=True, config=conf, filters=filters)
+        return self.__getWebsocketData(source, visual=True, config=conf, filters=filters)
 
-    def _getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}, filters=[]):
+    def __getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}, filters=[]):
         try:
             import ssl
             from websocket import create_connection
@@ -557,7 +557,7 @@ class ZDVisualization(object):
                 if not credentials:
                     return False
                 self._source_credentials.update({source: [ credentials, source_id ]})
-                self._update_source_file()
+                self.__updateSourceFile()
  
             # Parse the fields in case they are for the not visual
             if not fields and not visual:
@@ -595,7 +595,7 @@ class ZDVisualization(object):
                     break
                 maxloop += 1
                 frame = frame.replace('false','False')
-                frame = frame.replace('null','False')
+                frame = frame.replace('null','None')
                 frame = eval(frame)
                 dataframe.extend(frame.get('data',[]))
 
