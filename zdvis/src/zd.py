@@ -554,10 +554,12 @@ class ZDVisualization(object):
             - source: String. The name of the source.
             - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified.
             - rows: Integer (optional). The limit of rows fetched. Default is 10,000. Top limit is 1,000,000.
-            - filters: List of dicts (optional). A list of filters for the requested data. Ex:
+            - filters: List of dicts (optional). A list of filters for the raw data. Ex:
                 filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
+                If ZD._filters is defined it will affect this method. If the filters parameter is specified it will used instad of ZD._filters, 
             -time: Dict(optional). Time range for a time field if the source have any. Ex:
                 time = { 'timeField': 'timefield', 'from': '+2008-01-01 01:00:00.000', 'to': '+2008-12-31 12:58:00.000'}
+                If ZD._timeFilter is defined it will affect this method. If a time parameter is specified it will used instad of ZD._timeFilter, 
         """
         return self.__getWebsocketData(source, fields=fields, rows=rows, filters=filters, time=time)
 
@@ -578,13 +580,11 @@ class ZDVisualization(object):
         if not conf or not isinstance(conf,(dict)):
             print("The configuration parameter is required, and it has to be a python dict")
             return False
-        if not time:
-            time = self._timeFilter
-        if not filters:
-            filters = self._filters
         return self.__getWebsocketData(source, visual=True, config=conf, filters=filters, time=time)
 
     def __getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}, filters=[], time={}):
+        time = time or self._timeFilter
+        filters = filters or self._filters
         try:
             import ssl
             from websocket import create_connection
