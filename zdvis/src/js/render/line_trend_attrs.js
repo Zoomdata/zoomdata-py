@@ -28,6 +28,7 @@ require(["ZoomdataSDK", "jquery"], function(ZoomdataSDK, jquery) {
             "visualization": "Line Trend: Attribute Values",
             "config": {
                 "filters": v_filters,
+                "time": v_time,
                 "tz": "UTC"
             },
             "variables": v_vars,

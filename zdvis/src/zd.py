@@ -11,14 +11,11 @@ from .visdefinition import VisDefinition
 from .visrender import VisRender
 from .config import *
 from .jsbuilder import JSBuilder
-from .templates import Template
 from IPython.display import display, HTML
 
 rest = RestCalls()
 vd = VisDefinition()
 js = JSBuilder()
-t = Template()
-deps = ['ZoomdataSDK','jquery']
 
 def data(resp):
     return resp.data.decode('ascii')
@@ -58,22 +55,28 @@ class ZDVisualization(object):
         # Dataframe fetching attrs
         self._dframe= ''
         self._logcount = 0
+
+        # Iframe size for the visualization
+        self._width = 800
+        self._height = 400
+
         # Visualization attrs
         self._source = ''
         self._chart = chart
-        self._width = 800
-        self._height = 400
-        self._renderCount = 0 #To render a different chart each time
-        self._paths = paths
-        self._query = queryConfig
+        self._renderCount = 0 #To render a different chart each time. (jquery element)
         self._credentials = ''  # This is the key to get the source key to get the visualization
         self._source_id = '' # This is the source id to get the source definition
         self._source_charts = [] # Active visualizations for the current source
         self._allowed_visuals = [] # All the visualizations names allowed by zoomdata
-        self._variables = {}
-        self._filters = {} # Filters defined by the user to narrow visualization results
+        self._variables = {} #This is a default configuration used to render a visualization. Usually extracted from the vis definition
+        self._filters = [] # This filters are usually extracted from the vis definition.
+        self._timeFilter = {} # Time filter. Usually extracted from the vis definition (Provided by the timebar)
+        self._graphFilters = [] # Filters defined by the user to narrow visualization results in graph() 
         self._pickers = {} # Default pickers values for the visualization
-        #Attrs for new source/collection creation
+        self._paths = paths
+        self._query = queryConfig
+
+        #Attrs for new source/collection creation. Possible to be removed
         self._connReq = connReq
         self._sourceReq = sourceReq
 
@@ -195,7 +198,9 @@ class ZDVisualization(object):
                    'source': self._source,
                    'chart': self._chart,
                    'query': self._query,
+                   'time': self._timeFilter,
                    'filters': self._filters,
+                   'graph_filters': self._graphFilters,
                    'variables': self._variables }
         vr = VisRender(params)
         return vr.getVisualization(self._renderCount, self._pickers)
@@ -203,7 +208,7 @@ class ZDVisualization(object):
     def __render(self, pickers, filters):
         if(self._source):
             self._pickers = pickers
-            self._filters = filters
+            self._graphFilters = filters
             iframe = self.__getVisualization()[0]
             self._renderCount += 1
             return HTML(iframe)
@@ -212,7 +217,8 @@ class ZDVisualization(object):
 
     def graph(self, src="", chart= "", conf={}, filters={}):
         """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
-        chart, source, etc. to render an specific visualization. 
+        chart, source, etc. to render an specific visualization. This method is affected for the following ZD
+        special vars: _variables, _filters, _timeFilter.
             - Parameters:
             source: String. Specify the source of the visualization
             chart: String. Specify what type of visualization will be rendered
@@ -233,9 +239,13 @@ class ZDVisualization(object):
 
                   For Map: Markers no attributes are required
 
-            filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and a list
+            filters: Dict: Each dictionary must contain the name of the field to be used as a filter and a list
                 of values that the data must match. The name of the fields can be obtained through ZD.fields()
-                Ex: {'field1':['value1','value2'], 'field2':'value1'}
+                Ex: {'field1':['value1','value2'], 'field2':'value1'}. 
+
+                Filters also can be specified by using ZD._filters, but in this case the exact zoomdata syntax for filters should be used: 
+                    ZD._filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
+                    If the filters parameter is specified, it will be used instead of ZD._filters
 
         """
         if(self.setSource(src)):
@@ -525,7 +535,7 @@ class ZDVisualization(object):
         protocol = 'https' if self._conf['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, self._conf['host'], self._conf['port'], self._conf['path'])
 
-    def first(self, source, fields=[], filters=[]):
+    def first(self, source, fields=[], filters=[], time={}):
         """
         Retrieve the first data row from the specified source as a pandas dataframe object.
         Parameters:
@@ -534,22 +544,24 @@ class ZDVisualization(object):
             - filters: List of dicts (optional). A list of filters for the requested data. Ex:
                 filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
         """
-        return self.getData(source, fields=fields, rows=1, filters=filters)
+        return self.getRawData(source, fields=fields, rows=1, filters=filters, time=time)
 
 
-    def getData(self, source, fields=[], rows=10000, filters=[]):
+    def getRawData(self, source, fields=[], rows=10000, filters=[], time={}):
         """
-        Retrieve data from the specified source as a pandas dataframe object.
+        Returns the raw data from the specified source as a pandas dataframe object.
         Parameters:
             - source: String. The name of the source.
             - fields: List (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified.
             - rows: Integer (optional). The limit of rows fetched. Default is 10,000. Top limit is 1,000,000.
             - filters: List of dicts (optional). A list of filters for the requested data. Ex:
                 filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
+            -time: Dict(optional). Time range for a time field if the source have any. Ex:
+                time = { 'timeField': 'timefield', 'from': '+2008-01-01 01:00:00.000', 'to': '+2008-12-31 12:58:00.000'}
         """
-        return self.__getWebsocketData(source, fields=fields, rows=rows, filters=filters)
+        return self.__getWebsocketData(source, fields=fields, rows=rows, filters=filters, time=time)
 
-    def getVisualData(self, source, conf, filters=[]):
+    def getData(self, source, conf, filters=[], time={}):
         """
         Returns the aggregated data (data used for an specific visualization) for a given source.
         Parameters:
@@ -558,13 +570,21 @@ class ZDVisualization(object):
                 conf = {"fields": [{"name": "hotel_name", "limit": 20, "sort": {"dir": "desc", "name": "count"}}], "metrics": [{"func": "count", "name": "*"}]}
             - filters: List of dicts (optional). A list of filters for the aggregated data. Ex:
                 filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
+                If ZD._filters is defined it will affect this method. If the filters parameter is specified it will used instad of ZD._filters, 
+            -time: Dict(optional). Time range for a time field if the source have any. Ex:
+                time = { 'timeField': 'timefield', 'from': '+2008-01-01 01:00:00.000', 'to': '+2008-12-31 12:58:00.000'}
+                If ZD._timeFilter is defined it will affect this method. If a time parameter is specified it will used instad of ZD._timeFilter, 
         """
         if not conf or not isinstance(conf,(dict)):
             print("The configuration parameter is required, and it has to be a python dict")
             return False
-        return self.__getWebsocketData(source, visual=True, config=conf, filters=filters)
+        if not time:
+            time = self._timeFilter
+        if not filters:
+            filters = self._filters
+        return self.__getWebsocketData(source, visual=True, config=conf, filters=filters, time=time)
 
-    def __getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}, filters=[]):
+    def __getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}, filters=[], time={}):
         try:
             import ssl
             from websocket import create_connection
@@ -604,15 +624,16 @@ class ZDVisualization(object):
                         "cid": "f3020fa6e9339ee5829f6e2caa8d2e40",
                         "request": {
                                "streamSourceId": source_id,
-                               "cfg": {}
+                               "cfg": {},
                             }
                      }
+            if time:
+                request['request'].update({'time':time})
             if not visual:
-                conf = {'tz':'EST', 'fields':fields, 'limit':rows, 'filters':filters}
+                cfg = {'tz':'EST', 'fields':fields, 'limit':rows, 'filters':filters}
             else:
-                conf = {"filters":filters, "group": config}
-                #request['request'].update({'time':{'timeField':'_ts'}})
-            request['request']['cfg'].update(conf)
+                cfg = {"filters":filters, "group": config}
+            request['request']['cfg'] = cfg
             ws.send(js.s(request))
             req_done = False
             dataframe = []

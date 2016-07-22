@@ -24,18 +24,21 @@ class VisRender(object):
         self.chart = params['chart']
         self.query = params['query']
         self.variables = params['variables']
-        # Parse the filters
-        self.filters = []
+        self.filters= params['filters']
+        self.time = params['time']
+        #if graph_filters are specified, overwrite the ZD._filters
         #This implementation is is for the following filter syntax:
         # Ex: {'field1':['value1','value2'], 'field2':'value1'}
-        filterdict= params['filters']
-        for field in filterdict:
-            filt = {'operation':'IN'}
-            filt.update({'path': field})
-            if isinstance(filterdict[field], (str, int, bool)):
-                filterdict[field] = [filterdict[field]]
-            filt.update({'value':filterdict[field]})
-            self.filters.append(filt)
+        filterdict= params['graph_filters']
+        if filterdict:
+            self.filters = []
+            for field in filterdict:
+                filt = {'operation':'IN'}
+                filt.update({'path': field})
+                if isinstance(filterdict[field], (str, int, bool)):
+                    filterdict[field] = [filterdict[field]]
+                filt.update({'value':filterdict[field]})
+                self.filters.append(filt)
 
     def setRequireConf(self):
         #Set the require configuration part
@@ -44,8 +47,8 @@ class VisRender(object):
     def getJSTools(self):
         tools = ''
         path = os.path.dirname(os.path.realpath(__file__))
-        with open(path+'/js/tools.js') as t: #Set of functions used within the script
-            tools = ''.join(t.readlines())
+        with open(path+'/js/tools.js') as tool: #Set of functions used within the script
+            tools = ''.join(tool.readlines())
         return tools
 
     def getJSCode(self, chart):
@@ -71,17 +74,16 @@ class VisRender(object):
         #=== Common Vars declaration =======
         tools = self.getJSTools()
         defPicker = js.var('v_defPicker', js.s(defPicker))
-        creds = {'key': self.credentials }
-        # if self.token != '':
-            # creds = {'access_token': self.token}
+        creds = {'key': self.credentials}
         cred = js.var('v_credentials', js.s(creds))
         conf = js.var('v_conf', js.s(self.conf))
         source = js.var('v_source', js.s(self.source))
         filters = js.var('v_filters', js.s(self.filters))
+        timeFilter = js.var('v_time', js.s(self.time))
         variables = js.var('v_vars', js.s(self.variables))
         visualDiv = 'visual%s' % (str(renderCount))
         divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
-        return tools + cred + conf + source + filters + variables + divLocation + defPicker
+        return tools + cred + conf + source + filters + timeFilter + variables + divLocation + defPicker
     
     def setCommonChart(self, renderCount, pickers):
         # Default values to render the table
