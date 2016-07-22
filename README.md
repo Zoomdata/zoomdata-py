@@ -91,17 +91,33 @@ It sets a source to work with. Takes the source name as parameter.
 Retrieves the fields of the source specified by setSource() or the last one used by the graph() method.
 
 ##### getData()
-This methods retrieves a pandas dataframe object with the data from the given Zoomdata source. It takes the Zoomdata source name as a required parameter.  It also accepts the fields to retrieve and the limit of rows. By the default all the fields will be fetched with a limit of 1,000,000 rows.
+getData returns a pandas dataframe object with the aggregated data used in a visualization. It takes the name of the source and the configuration for the query. It is also affected by the same set of filters used by the graph() function.
 
 ```
-ZD.getData('Ticket Sales',['catname','venuestate'],100)
+conf = {   "fields": [{"name": "catname", 
+                       "limit": 20, 
+                       "sort": {"dir": "desc", "name": "count"}}], 
+            "metrics": [{"func": "count", "name": "*"}]
+        }
+ZD.getData('Ticket Sales', conf)
+```
+
+##### getRawData()
+This methods retrieves a pandas dataframe object with the data from the given Zoomdata source. It takes the Zoomdata source name as a required parameter.  It also accepts the fields to retrieve, the limit of rows, filters by field values and by time range. By the default all the fields will be fetched with a limit of 1,000,000 rows.
+
+```
+time = { 'timeField':'salestime', 
+         'from':'+2008-01-01 01:00:00.000', 
+         'to':'+2008-12-31 12:58:00.000'
+       }
+ZD.getRawData('Ticket Sales',['catname','venuestate'],100, time=time)
 ```
 
 ##### first()
-This is a shortcut to get only the first row from a source.  It takes the Zoomdata source name as a required parameter and optionally the fields. It is equivalent to specifiying getData with limit 1.
+This is a shortcut to get only the first row from a source.  It takes the Zoomdata source name as a required parameter and optionally the fields. It is equivalent to specifiying getRawData with limit 1.
 
 ##### register()
-This function allows users to create a new Zoomdata source from a dataframe. Usually, this is a pandas dataframe.
+This function allows users to create a new Zoomdata source from a dataframe. Usually, this is a pandas dataframe. If the source already exists, the old data will be entirely overwritten by the new data.
 
 ```
 ZD.register('My source name', dataframe_object)
@@ -109,3 +125,10 @@ ZD.register('My source name', dataframe_object)
 
 Once the source is created you can visualize it as any other source.
 
+
+##### append()
+Allows to update the data from an source by appending the new data to the existing one. It also updates source metadata (columns and fields names). The specified source must exists.
+
+```
+ZD.append('Existing source name', dataframe_object)
+```
