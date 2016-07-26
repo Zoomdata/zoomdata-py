@@ -1,3 +1,4 @@
-include zdvis/src/js/tools.js
-include zdvis/src/js/render/*.js
-include zdvis/src/js/visdef/*.json
+include zdvis/src/static/js/tools.js
+include zdvis/src/static/js/render/*.js
+include zdvis/src/static/js/visdef/*.json
+include zdvis/src/static/css/style.css

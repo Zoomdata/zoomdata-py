@@ -16,7 +16,7 @@ class VisDefinition(object):
             print(msg+"{'lat':'latitude_field_name', 'long':'longitude_field_name'}")
         else:
             visual_definition = {}
-            with open(path+'/js/visdef/map_markers.json', 'r') as v: 
+            with open(path+'/static/js/visdef/map_markers.json', 'r') as v: 
                 visual_definition = json.load(v)
                 lat_lon = "[{\"name\":\"%s\",\"limit\":100000},{\"name\":\"%s\",\"limit\":100000}]" % (lat, lon)
                 visual_definition['visId'] = visId
@@ -52,7 +52,7 @@ class VisDefinition(object):
             print('Except for field, any other value is optional')
         else:
             visual_definition = {}
-            with open(path+'/js/visdef/line_bars_trend.json', 'r') as v: 
+            with open(path+'/static/js/visdef/line_bars_trend.json', 'r') as v: 
                 visual_definition = json.load(v)
                 trend_attr = "{\"name\":\"%s\",\"limit\":%d,\"sort\":{\"dir\":\"%s\",\"name\":\"%s\"}}"
                 trend_attr = trend_attr % (field, limit, order, field)

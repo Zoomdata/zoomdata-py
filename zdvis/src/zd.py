@@ -186,7 +186,7 @@ class ZDVisualization(object):
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
-    def __getVisualization(self):
+    def __getVisualization(self, showPickers):
         # Request the source key in case it does not exists, this will allow to 
         # render the visualization if the notebook is re-opened
         params = { 'conf': self._conf,
@@ -203,25 +203,26 @@ class ZDVisualization(object):
                    'graph_filters': self._graphFilters,
                    'variables': self._variables }
         vr = VisRender(params)
-        return vr.getVisualization(self._renderCount, self._pickers)
+        return vr.getVisualization(self._renderCount, self._pickers, showPickers)
 
-    def __render(self, pickers, filters):
+    def __render(self, pickers, filters, showPickers):
         if(self._source):
             self._pickers = pickers
             self._graphFilters = filters
-            iframe = self.__getVisualization()[0]
+            iframe = self.__getVisualization(showPickers)[0]
             self._renderCount += 1
             return HTML(iframe)
         else:
             print('You need to specify a source: ZD.source = "Source Name"')
 
-    def graph(self, src="", chart= "", conf={}, filters={}):
+    def graph(self, src="", chart= "", pickers=True, conf={}, filters={}):
         """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
         chart, source, etc. to render an specific visualization. This method is affected for the following ZD
         special vars: _variables, _filters, _timeFilter.
             - Parameters:
             source: String. Specify the source of the visualization
             chart: String. Specify what type of visualization will be rendered
+            pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
             conf: Dictionary (optional). Defaults values for the the pickers (attribute/metric). 
                   This attribute is different depending on the chart type. Ex:
 
@@ -250,7 +251,7 @@ class ZDVisualization(object):
         """
         if(self.setSource(src)):
             if(self.__setChart(chart)):
-                return self.__render(conf, filters)
+                return self.__render(conf, filters, showPickers=pickers)
 
     # ==== Graph shorcut methods =============
 
@@ -353,7 +354,7 @@ class ZDVisualization(object):
         try:
             import jsbeautifier
             from bs4 import BeautifulSoup as bs
-            iframe, html, jscode = self.__getVisualization()
+            iframe, html, jscode = self.__getVisualization(True)
             soup=bs(html,"lxml")
             html=soup.prettify()
             jscode = jsbeautifier.beautify(jscode)
