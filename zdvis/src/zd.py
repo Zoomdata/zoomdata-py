@@ -255,11 +255,12 @@ class ZDVisualization(object):
 
     # ==== Graph shorcut methods =============
 
-    def pie(self, filters={}, **conf):
+    def pie(self, pickers=True, filters={}, **conf):
         """
         Renders a Pie visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default: 
+            - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
@@ -268,13 +269,14 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Pie', conf, filters)
+        return self.graph(self._source, 'Pie', pickers, conf, filters)
 
-    def bars(self, filters={}, **conf):
+    def bars(self, pickers=True, filters={}, **conf):
         """
         Renders a bars visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default: 
+            - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
@@ -283,13 +285,14 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Bars', conf, filters)
+        return self.graph(self._source, 'Bars', pickers, conf, filters)
 
-    def donut(self, filters={}, **conf):
+    def donut(self, pickers=True, filters={}, **conf):
         """
         Renders a Donut visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default: 
+            - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
@@ -298,13 +301,14 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Donut', conf, filters)
+        return self.graph(self._source, 'Donut', pickers, conf, filters)
 
-    def heatMap(self, filters={}, **conf):
+    def heatMap(self, pickers=True, filters={}, **conf):
         """
         Renders a Heat Map  visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default (if supported): 
+            - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
@@ -313,33 +317,37 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Heat Map', conf, filters)
+        return self.graph(self._source, 'Heat Map', pickers, conf, filters)
 
     def mapMarkers(self, filters={}, **conf):
         """
         Renders a Map: Markers visualization for the default source if defined. 
         This type of chart must be supported by the source
         """
-        return self.graph(self._source, 'Map: Markers', conf, filters)
+        return self.graph(self._source, 'Map: Markers', False, conf, filters)
 
-    def kpi(self, filters={}, **conf):
+    def kpi(self, pickers=True, filters={}, **conf):
         """
         Renders a KPI visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default (if supported): 
+            - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - metric: String. Field name to use as default metric
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'KPI', conf, filters)
+        return self.graph(self._source, 'KPI', pickers, conf, filters)
 
-    def treeMap(self, filters={}, **conf):
+    def treeMap(self, pickers=True, filters={}, **conf):
         """
         Renders a Tree Map  visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default (if supported): 
+            - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
+            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
@@ -348,7 +356,7 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Tree Map', conf, filters)
+        return self.graph(self._source, 'Tree Map', pickers, conf, filters)
 
     def __getHTML(self):
         try:
