@@ -30,13 +30,13 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     for(op in funcs){
         funcOpt += buildHTML("option", funcs[op], {value: funcs[op].toLowerCase()})
     }
-    var funcSelect = buildHTML("select", funcOpt, {id: "func", style:"width:90%"})
+    var funcSelect = buildHTML("select", funcOpt, {id: "func", class:"pickers"})
 
     //Sort direction selector
     sorts = ["desc","asc"]
     sortOpt = buildHTML("option", "ASC", {value: "asc"})
     sortOpt += buildHTML("option", "DESC", {value: "desc"})
-    var sortSelect = buildHTML("select", sortOpt , {id: "sort", style:"width:90%"})
+    var sortSelect = buildHTML("select", sortOpt , {id: "sort", class:"pickers"})
 
     //Unit time selector
     granularities= ["MINUTE","HOUR","DAY","WEEK","MONTH","YEAR"]
@@ -44,7 +44,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     for(g in granularities){
         timeOpt += buildHTML("option", granularities[g], {value:granularities[g]})
     }
-    timeSelect = buildHTML("select", timeOpt , {id: "time", style:"width:90%"})
+    timeSelect = buildHTML("select", timeOpt , {id: "time", class:"pickers"})
 
     //This is to validate correct pickers field names/labels specified by the user in graph()
     var fieldNames  = []
@@ -107,9 +107,9 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                     }
                 }
             });
-            dimensionSelect = buildHTML("select", dimOpt, {id: "dimension", style:"width:90%"})
-            trendSelect  = buildHTML("select", trendOpt, {id: "dimension", style:"width:90%"})
-            metricSelect = buildHTML("select", metOpt, {id: "metric", style:"width:90%"})
+            dimensionSelect = buildHTML("select", dimOpt, {id: "dimension", class:"pickers"})
+            trendSelect  = buildHTML("select", trendOpt, {id: "dimension", class:"pickers"})
+            metricSelect = buildHTML("select", metOpt, {id: "metric", class:"pickers"})
 
             //Set the pickers specified by the user (if any) in graph()
             if(v_showPickers && v_defPicker) loadUserPickers()

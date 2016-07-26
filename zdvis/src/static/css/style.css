@@ -16,3 +16,7 @@ table.pickers{
     border: 0px;
     font-size:13px;
 }
+.pickers{
+    width: 90%;
+    color: black; 
+}
