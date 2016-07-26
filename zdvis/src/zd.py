@@ -13,6 +13,8 @@ from .config import *
 from .jsbuilder import JSBuilder
 from IPython.display import display, HTML
 
+SOURCES_JSON_FILE = os.environ.get("HOME") + "/.sources.json"
+
 rest = RestCalls()
 vd = VisDefinition()
 js = JSBuilder()
@@ -36,16 +38,15 @@ class ZDVisualization(object):
         protocol = 'https' if config['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, config['host'], config['port'], config['path'])
         self._source_credentials = {}
-        self._sources_json_file = '/tmp/sources.json'
 
-        if os.path.exists(self._sources_json_file):
-            with open(self._sources_json_file,'r') as sc:
+        if os.path.exists(SOURCES_JSON_FILE):
+            with open(SOURCES_JSON_FILE,'r') as sc:
                 self._source_credentials = json.load(sc)
         else: #Create it and leave it there
-            with open(self._sources_json_file, 'w') as sc:
+            with open(SOURCES_JSON_FILE, 'w') as sc:
                 json.dump(self._source_credentials, sc)
             #Change the mode so anyone can use read/write it
-            os.chmod(self._sources_json_file,0o666)
+            # os.chmod(SOURCES_JSON_FILE,0o666)
 
         # User authentication
         self._user = ''
@@ -95,9 +96,8 @@ class ZDVisualization(object):
         self._user = user
 
     def __updateSourceFile(self):
-        with open(self._sources_json_file, 'w') as sc:
+        with open(SOURCES_JSON_FILE, 'w') as sc:
             json.dump(self._source_credentials, sc)
-
 
     def _oauth(self, user):
         # Ideally this should go within data_handler
