@@ -476,18 +476,12 @@ class ZDVisualization(object):
             if not self._source:
                 print('You need to define a source before setting the chart')
             else:
-                if not self._allowed_visuals:
-                    self._allowed_visuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
-                visualsNames = [v['name'] for v in self._allowed_visuals]
-                if nchart in visualsNames: # If is an allowed visualization type
-                    if nchart in self._source_charts: # If is an active visualization for the source
-                        self._chart = nchart
-                        return True
-                    else:
-                        print('Chart type not configured, to configure it use ZD.setVisualization method')
+                if nchart in self._source_charts: # If is an active visualization for the source
+                    self._chart = nchart
+                    return True
                 else:
-                    print('Chart type not found. Supported charts are:')
-                    print('\n'.join(visualsNames))
+                    print('Chart type not found or not configured. Supported charts for "%s" are:' % self._source)
+                    print('\n'.join(self._source_charts))
         else:
             print('You need to authenticate: ZD.auth("user","password")')
         return False
