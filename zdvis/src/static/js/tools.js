@@ -79,20 +79,47 @@ function loadDefinitionPickers(){
     return pickerVals
 }
 
-function getValue(oldval, newval){
+
+function checkValue(val){
+    if($.inArray(val, fieldNames) > -1) return val; 
+    pos = $.inArray(val, fieldLabels)
+    if(pos > -1) return fieldNames[pos];
+}
+
+function getValue(oldval, newval, accessor=false){
     if(newval){
-        if($.inArray(newval, fieldNames) > -1) return newval;
-        pos = $.inArray(newval, fieldLabels)
-        if(pos > -1) return fieldNames[pos];
+        if(accessor){ 
+            console.log(accessor);
+            //In multigroup user pickers can be:
+            //attr:"fieldname" or attr:["field1","field2"]
+            if(typeof(newval) == "string"){
+                if(accessor == "Group 1") return checkValue(newval);
+                return oldval;
+            }
+            else{
+                //Get what group is (1,2, etc...)
+                pos = parseInt(accessor.split(" ")[1])
+                console.log("pos", pos);
+                if(newval.length >= pos) return checkValue(newval[pos - 1]);
+                return oldval;
+            }
+        }
+        return checkValue(newval);
     }
     return oldval
 }
 
 
 function loadUserPickers(){
+    mgroupRegex = /Group [1-9]/g
     for (acc in v_pickersValues){
         if(acc == "Group By"){
             v_pickersValues[acc].field = getValue(v_pickersValues[acc].field, v_defPicker.field)
+            if(v_defPicker.limit) v_pickersValues[acc].limit = v_defPicker.limit
+            setDimension(acc)
+        }
+        else if(acc.match(mgroupRegex)){
+            v_pickersValues[acc].field = getValue(v_pickersValues[acc].field, v_defPicker.field, acc)
             if(v_defPicker.limit) v_pickersValues[acc].limit = v_defPicker.limit
             setDimension(acc)
         }
