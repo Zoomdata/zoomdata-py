@@ -26,6 +26,7 @@ function setPickers(htmlStr, pickersVal){
 function loadDefinitionPickers(){
         pickerVals = {}
         dim = window.viz.dataAccessors.getDimensionAccessors()
+        groupCounts = 1
         for (var i = 0; i < dim.length; i++) {
             for (acc in dim[i]){
                 groups = dim[i][acc].getGroup()
@@ -35,6 +36,15 @@ function loadDefinitionPickers(){
                     if(acc == "Multi Group By"){
                         if(groups[g].type == "ATTRIBUTE"){
                             accesor = "Group By"
+                            //Heat Map contain Group 1 and 2 instead of Group By
+                            if(groupCounts > 1){
+                              accesor = "Group "+groupCounts.toString()
+                              if(pickerVals.hasOwnProperty("Group By")){
+                                  pickerVals["Group 1"] = pickerVals["Group By"]
+                                  delete pickerVals["Group By"]
+                              }
+                            } 
+                            groupCounts += 1
                         }
                         else{
                             accesor = "Trend Attribute"
