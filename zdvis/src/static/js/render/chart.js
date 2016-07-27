@@ -112,7 +112,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             metricSelect = buildHTML("select", metOpt, {id: "metric", class:"pickers"})
 
             //Set the pickers specified by the user (if any) in graph()
-            if(v_showPickers && v_defPicker) loadUserPickers()
+            if(v_defPicker) loadUserPickers()
             console.log("Pickers",v_pickersValues)
             
             //Set the dimension & metric pickers buttons in the DOM
