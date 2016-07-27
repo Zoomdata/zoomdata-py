@@ -226,8 +226,15 @@ class ZDVisualization(object):
             conf: Dictionary (optional). Defaults values for the the pickers (attribute/metric). 
                   This attribute is different depending on the chart type. Ex:
 
-                  For: Bars, Donut, Floating Bubbles, Pie, Tree Map, Packed Bubbles, Word Cloud
+                  For: Bars, Donut, Pie, Tree Map, Packed Bubbles, Word Cloud
                   {'attribute':'Ticket', 'metric': 'Survived', 'operation':'sum', 'limit':10 }
+
+                  For: Floating Bubbles, Heat Map
+                  {'attribute':['Field1','Field2'], 'metric': 'Field3', 'operation':'sum', 'limit':20 }
+                  If want to affect the first group only: 'attribute':'Field1'
+
+                  For: Scatter Plot
+                  {'attribute':'Field1', 'yaxis':'Field2', 'y-operation':'sum', 'xaxis':'Field3', 'x-operation':'sum', 'metric': 'Field4', 'operation':'sum', 'limit':10 }
 
                   For: KPI
                   {'metric': 'Survived', 'operation':'sum'}
@@ -236,7 +243,7 @@ class ZDVisualization(object):
                   {'y1':'Commision', 'y2':'Pricepaid', 'op1': 'sum', 'op2':'avg', 'trend':'Saletime','unit':'MONTH', 'limit':10 }
 
                   For Line Trend: Attribute Values
-                  {'attribute':'Ticket', 'metric':'Pricepaid', 'operation': 'sum', 'trend':'Saletime','unit':'MONTH', 'limit':10 }
+                  {'attribute':'Ticket', 'yaxis':'Pricepaid', 'y-operation': 'sum', 'trend':'Saletime','unit':'MONTH', 'limit':10 }
 
                   For Map: Markers no attributes are required
 

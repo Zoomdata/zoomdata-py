@@ -1,13 +1,3 @@
-function getKeys(obj) {
-    var keys = [], name;
-    for (name in obj) {
-        if (obj.hasOwnProperty(name)) {
-            keys.push(name);
-        }
-    }
-    return keys;
-}
-
 function setPickers(htmlStr, pickersVal){
     for(key in pickersVal){
         val = pickersVal[key]
@@ -15,7 +5,6 @@ function setPickers(htmlStr, pickersVal){
             //Pickers
             oldStr = "\""+val+"\""
             newStr = oldStr + " selected=\"selected\""
-            //Inputs: HOW TO???
             htmlStr = htmlStr.replace(oldStr, newStr)
         }
     }
@@ -24,45 +13,48 @@ function setPickers(htmlStr, pickersVal){
 
 
 function loadDefinitionPickers(){
-        pickerVals = {}
-        dim = window.viz.dataAccessors.getDimensionAccessors()
-        groupCounts = 1
-        for (var i = 0; i < dim.length; i++) {
-            for (acc in dim[i]){
-                groups = dim[i][acc].getGroup()
-                groups = (groups != null ) ? [groups]: dim[i][acc].getGroups()
-                for (var g = 0; g < groups.length; g++) {
-                    accesor = acc
-                    if(acc == "Multi Group By"){
-                        if(groups[g].type == "ATTRIBUTE"){
-                            accesor = "Group By"
-                            //Heat Map contain Group 1 and 2 instead of Group By
-                            if(groupCounts > 1){
-                              accesor = "Group "+groupCounts.toString()
-                              if(pickerVals.hasOwnProperty("Group By")){
-                                  pickerVals["Group 1"] = pickerVals["Group By"]
-                                  delete pickerVals["Group By"]
-                              }
-                            } 
-                            groupCounts += 1
-                        }
-                        else{
-                            accesor = "Trend Attribute"
-                        }
+    //Loads and parse the default visualization values(dimensions and metrics) stored 
+    //in the visualization definition
+    pickerVals = {}
+    dim = window.viz.dataAccessors.getDimensionAccessors()
+    groupCounts = 1
+    for (var i = 0; i < dim.length; i++) {
+        for (acc in dim[i]){
+            groups = dim[i][acc].getGroup()
+            groups = (groups != null ) ? [groups]: dim[i][acc].getGroups()
+            for (var g = 0; g < groups.length; g++) {
+                accesor = acc
+                if(acc == "Multi Group By"){
+                    if(groups[g].type == "ATTRIBUTE"){
+                        accesor = "Group By"
+                        //Heat Map & Floating Bubbles contain Group 1 and 2 instead of Group By
+                        if(groupCounts > 1){
+                          accesor = "Group "+groupCounts.toString()
+                          if(pickerVals.hasOwnProperty("Group By")){
+                              pickerVals["Group 1"] = pickerVals["Group By"]
+                              delete pickerVals["Group By"]
+                          }
+                        } 
+                        groupCounts += 1
                     }
-                    pickerVals[accesor] ={
-                        field: groups[g].name,
-                        sort:  groups[g].sort.name,
-                        time:  groups[g].func,
-                        mfunc: groups[g].sort.metricFunc,
-                        dir:   groups[g].sort.dir,
-                        limit: groups[g].limit,
-                        type: groups[g].type
-                    } 
+                    else{
+                        accesor = "Trend Attribute"
+                    }
                 }
+                pickerVals[accesor] ={
+                    field: groups[g].name,
+                    sort:  groups[g].sort.name,
+                    time:  groups[g].func,
+                    mfunc: groups[g].sort.metricFunc,
+                    dir:   groups[g].sort.dir,
+                    limit: groups[g].limit,
+                    type: groups[g].type
+                } 
             }
         }
+    }
 
+    //Load the metrics
     met = window.viz.dataAccessors.getMetricAccessors()
     for (var i = 0; i < met.length; i++) {
         for(acc in met[i]){
@@ -81,6 +73,8 @@ function loadDefinitionPickers(){
 
 
 function checkValue(val){
+    //Check if the fields specified by the user in graph() are correctly
+    //Also support the field name or field label: qtysold / Quantity Sold 
     if($.inArray(val, fieldNames) > -1) return val; 
     pos = $.inArray(val, fieldLabels)
     if(pos > -1) return fieldNames[pos];
@@ -138,6 +132,16 @@ function loadUserPickers(){
             if(v_defPicker.func) v_pickersValues[acc].func = v_defPicker.func
             setMetric(acc)
         }
+        else if(acc == "Y Axis"){
+            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.y)
+            if(v_defPicker.yop) v_pickersValues[acc].func = v_defPicker.yop
+            setMetric(acc)
+        }
+        else if(acc == "X Axis"){
+            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.x)
+            if(v_defPicker.xop) v_pickersValues[acc].func = v_defPicker.xop
+            setMetric(acc)
+        }
         else if(acc == "Y1 Axis"){
             v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.y1)
             if(v_defPicker.y1op) v_pickersValues[acc].func = v_defPicker.y1op
@@ -180,7 +184,6 @@ function buildHTML(tag, html, attrs){
   return h += html ? ">" + html + "</" + tag + ">" : "/>";
 }
 
-
 function getDimensionGroups(){
     groups = []
     for(acc in v_pickersValues){
@@ -200,10 +203,10 @@ function getDimensionGroups(){
 
 function setDimension(accessorName){
     val = v_pickersValues[accessorName]
-    if($.inArray("Multi Group By", accesorsKeys) > -1){
+    if(window.viz.dataAccessors.hasOwnProperty("Multi Group By")){
         accessorName = "Multi Group By"    
     }
-    accessor = window.viz["dataAccessors"][accessorName];
+    accessor = window.viz.dataAccessors[accessorName];
     group = {   "name": val.field, 
                 "sort":{
                         "name": val.sort, 
@@ -222,7 +225,7 @@ function setDimension(accessorName){
 function setMetric(accessorName){
     val = v_pickersValues[accessorName]
     metric = {"name": val.met, "func": val.func}
-    accessor = window.viz["dataAccessors"][accessorName];
+    accessor = window.viz.dataAccessors[accessorName];
     console.log(metric)
     accessor.setMetric(metric)
 }
