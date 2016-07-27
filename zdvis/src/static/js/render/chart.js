@@ -50,7 +50,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     var fieldNames  = []
     var fieldLabels = []
 
-    //Start the app
+    //Start the visualization
     ZoomdataSDK.createClient({
         "credentials": v_credentials,
         "application": {
@@ -78,8 +78,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             "element": v_divLocation
         }).done(function(result) {
             window.viz = result;
-            accesorsKeys = getKeys(window.viz.dataAccessors);
-            console.log("Accesors", accesorsKeys);
+            console.log("Result",result);
 
             //Load the values that comes from the visualization definition
             v_pickersValues = loadDefinitionPickers() 
@@ -183,6 +182,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 }
                 //Set the dimension
                 setDimension(btnAccessor)
+                //Update the button text with the selected dimension
                 fieldLabel = btnAccessor + ": <b>"+field+"</b>"
                 if(type == "TIME") { 
                     fieldLabel += "<b>("+time+")</b>"
@@ -216,6 +216,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 }
                 //Set the metric
                 setMetric(btnAccessor)
+                //Update the button text with the selected metric
                 metLabel = btnAccessor+": <b>"+met+"</b>"
                 if(func != ""){
                     metLabel += "<b>("+func+")</b>" 
@@ -225,6 +226,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         })
     })
 
+    //Disable the operation selector if users selects "count"
     $("body").on("change", "select#metric", function(){
         met = $("select#metric").val();
         if(met == "count"){
