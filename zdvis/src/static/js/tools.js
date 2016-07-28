@@ -78,6 +78,7 @@ function checkValue(val){
     if($.inArray(val, fieldNames) > -1) return val; 
     pos = $.inArray(val, fieldLabels)
     if(pos > -1) return fieldNames[pos];
+    return "count"
 }
 
 function getValue(oldval, newval, accessor=false){
@@ -219,6 +220,7 @@ function setDimension(accessorName){
         accessor.resetGroups(groups);
     }
     else{
+        accessor = window.viz.dataAccessors[accessorName];
         group = getDimensionGroup(accessorName);
         console.info(accessorName, group);
         accessor.resetGroup(group);
