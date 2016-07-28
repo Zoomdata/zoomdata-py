@@ -24,7 +24,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     var trendSelect = ""
     var metricSelect = ""
 
-    //Metrics operation selector
+    //Operation for Metric selectors
     funcs = ["Sum","Avg","Min","Max"]
     var funcOpt = ""
     for(op in funcs){
@@ -33,10 +33,14 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     var funcSelect = buildHTML("select", funcOpt, {id: "func", class:"pickers"})
 
     //Sort direction selector
-    sorts = ["desc","asc"]
     sortOpt = buildHTML("option", "ASC", {value: "asc"})
     sortOpt += buildHTML("option", "DESC", {value: "desc"})
     var sortSelect = buildHTML("select", sortOpt , {id: "sort", class:"pickers"})
+
+    //Chronological and reverse chronological order  for time attributes (trend charts)
+    cronOpt= buildHTML("option", "Chronological", {value: "asc"})
+    cronOpt += buildHTML("option", "Reverse chronological", {value: "desc"})
+    var cronSelect = buildHTML("select", cronOpt , {id: "sort", class:"pickers"})
 
     //Unit time selector
     granularities= ["MINUTE","HOUR","DAY","WEEK","MONTH","YEAR"]
@@ -152,10 +156,10 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                                                 style:"width:90%;color:black"})
         var type = v_pickersValues[btnAccessor].type 
         if(type == "ATTRIBUTE"){
-            table = [["Dimension",dimensionSelect],["Sort By", metricSelect],["Order",sortSelect ],["Limit", limitInput]] 
+            table = [["Dimension",dimensionSelect],["Sort By", metricSelect],["Operator", funcSelect ], ["Order",sortSelect ],["Limit", limitInput]] 
         }
-        else{
-            table = [["Dimension",trendSelect],["Time", timeSelect],["Sort By", metricSelect],["Dir", sortSelect], ["Limit", limitInput]] 
+        else{ //TIME
+            table = [["Dimension",trendSelect], ["Time", timeSelect], ["Order", cronSelect], ["Limit", limitInput]] 
         }
         var content = makeTable(table,{class:"pickers"})
         //Load the selectors with the last used values
@@ -169,6 +173,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 var field = this.$b.find("#dimension").val()
                 var time = this.$b.find("#time").val()
                 var sortby = this.$b.find("#metric").val()
+                var metFunc = this.$b.find("#func").val()
                 var dir = this.$b.find("#sort").val()
                 var limit = this.$b.find("#limit").val()
                 //Save the values
@@ -176,6 +181,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                     field: field,
                     time: time,
                     sort: sortby,
+                    mfunc: metFunc,
                     dir: dir,
                     limit: parseInt(limit),
                     type: type

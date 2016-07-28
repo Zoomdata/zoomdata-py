@@ -184,48 +184,51 @@ function buildHTML(tag, html, attrs){
   return h += html ? ">" + html + "</" + tag + ">" : "/>";
 }
 
-function getDimensionGroups(){
-    groups = []
-    for(acc in v_pickersValues){
-        group = v_pickersValues[acc]
-        if (group.type == "ATTRIBUTE" || group.type == "TIME"){
-            g = { "name": group.field, 
-                  "sort":{"name":group.sort, "dir":group.dir}, 
-                  "limit":group.limit, 
-                  "type": group.type
+function getDimensionGroup(accessor){
+    val = v_pickersValues[accessor]
+    if(val.type == "ATTRIBUTE" || val.type == "TIME"){
+        group = { 
+                  "name": val.field, 
+                  "sort":{ "name": val.sort, "dir": val.dir, "metricFunc": val.mfunc}, 
+                  "limit": val.limit, 
+                  "type": val.type
                 }
-            if(group.type == "TIME"){ g.func = group.time}
-            groups.push(g)
+        if(val.type == "TIME"){
+            group.func = val.time; //The granularity
+            group.sort.name = group.name; //The same time field
+            delete group.sort.metricFunc; //No operation
+        } 
+        if(group.sort.name == "count"){
+            delete group.sort.metricFunc;
         }
+        return group
     }
-    return groups
+    return false
 }
 
 function setDimension(accessorName){
-    val = v_pickersValues[accessorName]
-    if(window.viz.dataAccessors.hasOwnProperty("Multi Group By")){
-        accessorName = "Multi Group By"    
+    multiGroup = "Multi Group By";
+    if(window.viz.dataAccessors.hasOwnProperty(multiGroup)){
+        accessor = window.viz.dataAccessors[multiGroup];
+        groups = [];
+        for(acc in v_pickersValues){
+            g = getDimensionGroup(acc)
+            if(g) groups.push(getDimensionGroup(acc));
+        }
+        console.info(multiGroup, groups);
+        accessor.resetGroups(groups);
     }
-    accessor = window.viz.dataAccessors[accessorName];
-    group = {   "name": val.field, 
-                "sort":{
-                        "name": val.sort, 
-                        "dir": val.dir }, 
-                "limit": val.limit, 
-                "type": val.type}
-    if(val.type == "TIME") group.func = val.time
-    try{
-        accessor.resetGroup(group)
-    }
-    catch(err){
-        accessor.resetGroups(getDimensionGroups());
-    }
+    else{
+        group = getDimensionGroup(accessorName);
+        console.info(accessorName, group);
+        accessor.resetGroup(group);
+     }
 }
 
 function setMetric(accessorName){
     val = v_pickersValues[accessorName]
     metric = {"name": val.met, "func": val.func}
     accessor = window.viz.dataAccessors[accessorName];
-    console.log(metric)
     accessor.setMetric(metric)
+    console.info(accessorName, metric)
 }
