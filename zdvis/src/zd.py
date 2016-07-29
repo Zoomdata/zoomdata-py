@@ -326,7 +326,7 @@ class ZDVisualization(object):
         """
         return self.graph(self._source, 'Heat Map', pickers, conf, filters)
 
-    def mapMarkers(self, filters={}, **conf):
+    def mapMarkers(self, filters={}):
         """
         Renders a Map: Markers visualization for the default source if defined. 
         This type of chart must be supported by the source

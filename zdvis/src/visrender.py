@@ -110,6 +110,7 @@ class VisRender(object):
         """Set up of the final code snippet to be rendered"""
         w, h = self.width, self.height
         visualDiv = 'visual%s' % (str(renderCount))
+        showPickers = False if self.chart in ['Map: Markers'] else showPickers
         jscode = self.setCommonChart(renderCount, pickers, showPickers)
         styles = t.styleTags % (self.getCss())
         htmlcode = t.confirmcss + t.bootstrapcss + styles + t.divFilters + t.loadmsg + t.divChart % (visualDiv, str(w), str(h))

@@ -20,7 +20,12 @@ function loadDefinitionPickers(){
     groupCounts = 1
     for (var i = 0; i < dim.length; i++) {
         for (acc in dim[i]){
-            groups = dim[i][acc].getGroup()
+            try{
+                groups = dim[i][acc].getGroup()
+            }
+            catch(err){
+                groups = dim[i][acc].getFields() //Maps
+            }
             groups = (groups != null ) ? [groups]: dim[i][acc].getGroups()
             for (var g = 0; g < groups.length; g++) {
                 accesor = acc
