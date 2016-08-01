@@ -186,9 +186,10 @@ class ZDVisualization(object):
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
-    def __getVisualization(self, showPickers):
+    def __getVisualization(self, showPickers, time):
         # Request the source key in case it does not exists, this will allow to 
         # render the visualization if the notebook is re-opened
+        time = time or self._timeFilter
         params = { 'conf': self._conf,
                    'credentials': self._credentials,
                    'token': self._token,
@@ -198,24 +199,24 @@ class ZDVisualization(object):
                    'source': self._source,
                    'chart': self._chart,
                    'query': self._query,
-                   'time': self._timeFilter,
+                   'time': time,
                    'filters': self._filters,
                    'graph_filters': self._graphFilters,
                    'variables': self._variables }
         vr = VisRender(params)
         return vr.getVisualization(self._renderCount, self._pickers, showPickers)
 
-    def __render(self, pickers, filters, showPickers):
+    def __render(self, pickers, filters, showPickers, time):
         if(self._source):
             self._pickers = pickers
             self._graphFilters = filters
-            iframe = self.__getVisualization(showPickers)[0]
+            iframe = self.__getVisualization(showPickers, time)[0]
             self._renderCount += 1
             return HTML(iframe)
         else:
             print('You need to specify a source: ZD.source = "Source Name"')
 
-    def graph(self, src="", chart= "", pickers=True, conf={}, filters={}):
+    def graph(self, src="", chart= "", pickers=True, conf={}, filters={}, time={}):
         """ Renders a visualization from Zoomdata. Takes in count the ZD object attributes such as
         chart, source, etc. to render an specific visualization. This method is affected for the following ZD
         special vars: _variables, _filters, _timeFilter.
@@ -255,14 +256,17 @@ class ZDVisualization(object):
                     ZD._filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
                     If the filters parameter is specified, it will be used instead of ZD._filters
 
+            -time: Dict(optional). Time range for a time field if the source have any. Ex:
+                time = { 'timeField': 'timefield', 'from': '+2008-01-01 01:00:00.000', 'to': '+2008-12-31 12:58:00.000'}
+                If ZD._timeFilter is defined it will affect this method. If a time parameter is specified it will used instad of ZD._timeFilter, 
         """
         if(self.setSource(src)):
             if(self.__setChart(chart)):
-                return self.__render(conf, filters, showPickers=pickers)
+                return self.__render(conf, filters, showPickers=pickers, time=time)
 
     # ==== Graph shorcut methods =============
 
-    def pie(self, pickers=True, filters={}, **conf):
+    def pie(self, pickers=True, filters={}, time={}, **conf):
         """
         Renders a Pie visualization for the default source if defined. 
         Parameters:
@@ -276,9 +280,9 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Pie', pickers, conf, filters)
+        return self.graph(self._source, 'Pie', pickers, conf, filters, time)
 
-    def bars(self, pickers=True, filters={}, **conf):
+    def bars(self, pickers=True, filters={}, time={}, **conf):
         """
         Renders a bars visualization for the default source if defined. 
         Parameters:
@@ -292,9 +296,9 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Bars', pickers, conf, filters)
+        return self.graph(self._source, 'Bars', pickers, conf, filters, time)
 
-    def donut(self, pickers=True, filters={}, **conf):
+    def donut(self, pickers=True, filters={}, time={}, **conf):
         """
         Renders a Donut visualization for the default source if defined. 
         Parameters:
@@ -308,9 +312,9 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Donut', pickers, conf, filters)
+        return self.graph(self._source, 'Donut', pickers, conf, filters, time)
 
-    def heatMap(self, pickers=True, filters={}, **conf):
+    def heatMap(self, pickers=True, filters={}, time={}, **conf):
         """
         Renders a Heat Map  visualization for the default source if defined. 
         Parameters:
@@ -324,7 +328,7 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Heat Map', pickers, conf, filters)
+        return self.graph(self._source, 'Heat Map', pickers, conf, filters, time)
 
     def mapMarkers(self, filters={}):
         """
@@ -333,22 +337,21 @@ class ZDVisualization(object):
         """
         return self.graph(self._source, 'Map: Markers', False, conf, filters)
 
-    def kpi(self, pickers=True, filters={}, **conf):
+    def kpi(self, pickers=True, filters={}, time={}, **conf):
         """
         Renders a KPI visualization for the default source if defined. 
         Parameters:
             Set of optional attributes to use as default (if supported): 
             - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
-            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
             - metric: String. Field name to use as default metric
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'KPI', pickers, conf, filters)
+        return self.graph(self._source, 'KPI', pickers, conf, filters, time)
 
-    def treeMap(self, pickers=True, filters={}, **conf):
+    def treeMap(self, pickers=True, filters={}, time={}, **conf):
         """
         Renders a Tree Map  visualization for the default source if defined. 
         Parameters:
@@ -363,13 +366,13 @@ class ZDVisualization(object):
             - limit: Integer: Max number of results
             - operation: The type of the operation/function on the metric. sum/max/min/avg
         """
-        return self.graph(self._source, 'Tree Map', pickers, conf, filters)
+        return self.graph(self._source, 'Tree Map', pickers, conf, filters, time)
 
     def __getHTML(self):
         try:
             import jsbeautifier
             from bs4 import BeautifulSoup as bs
-            iframe, html, jscode = self.__getVisualization(True)
+            iframe, html, jscode = self.__getVisualization(True, self._timeFilter)
             soup=bs(html,"lxml")
             html=soup.prettify()
             jscode = jsbeautifier.beautify(jscode)

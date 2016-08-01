@@ -77,7 +77,7 @@ class VisRender(object):
         divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
         return tools + cred + conf + source + filters + timeFilter + variables + divLocation + defPicker
     
-    def setCommonChart(self, renderCount, pickers, showPickers):
+    def setJSCode(self, renderCount, pickers, showPickers):
         # Default pickers values to render the table
         defPicker = False
         if pickers: 
@@ -111,7 +111,7 @@ class VisRender(object):
         w, h = self.width, self.height
         visualDiv = 'visual%s' % (str(renderCount))
         showPickers = False if self.chart in ['Map: Markers'] else showPickers
-        jscode = self.setCommonChart(renderCount, pickers, showPickers)
+        jscode = self.setJSCode(renderCount, pickers, showPickers)
         styles = t.styleTags % (self.getCss())
         htmlcode = t.confirmcss + t.bootstrapcss + styles + t.divFilters + t.loadmsg + t.divChart % (visualDiv, str(w), str(h))
         jscode = t.scriptTags % (jscode)
