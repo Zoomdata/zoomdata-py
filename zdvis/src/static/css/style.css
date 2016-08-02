@@ -7,7 +7,6 @@ table.pickers{
     border-collapse:separate;
     margin-left:10%
 }
-
 /*Pickers button style*/
 .btnp{
     background-color: #DDD;
@@ -20,3 +19,35 @@ table.pickers{
     width: 90%;
     color: black; 
 }
+/*Multiple Metrics Selector*/
+table.multi{
+    margin-left:10%;
+    width:90%;
+    color:white !important; 
+    font-size:14px;
+    border-spacing:3px;
+    border-collapse:separate;
+    text-align: left !important;
+}
+
+.multimetric{
+    overflow-y: scroll;
+    color: white;
+    height: 200px;
+    background-color: #2d2d2d;
+    border-radius: 6px;
+    width:100%;
+}
+
+input[type="checkbox"] {
+    font-weight: normal;
+    display:inline;
+    width:19px;
+    height:19px;
+    margin:-1px 4px 0 0;
+    vertical-align:middle;
+}
+label{
+    font-weight:normal;
+}
+

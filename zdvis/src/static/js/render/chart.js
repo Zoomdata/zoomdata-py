@@ -84,8 +84,6 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             window.viz = result;
             console.log("Result",result);
 
-            //Load the values that comes from the visualization definition
-            v_pickersValues = loadDefinitionPickers() 
 
             //Fill and create the selectors with the source fields
             var dimOpt = buildHTML("option","Select attribute", {value:""})
@@ -93,14 +91,23 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 metOpt += buildHTML("option","Count", {value:"count"})
             var trendOpt = buildHTML("option","Select attribute ", {value:""})
 
+            var multiMetricTable = []
+            checkbox = buildHTML("input", "", {value: "count", type:"checkbox", id: "count", name:"multi-metrics"})
+            label = buildHTML("label", "Count", {for: "count"})
+            hidden = buildHTML("input", "", {data: "count", type:"hidden"}) //This is a hack for the setPickers function
+            multiMetricTable.push([checkbox, label, hidden])
+
             $.each(window.viz.source.objectFields, function() {
                 if (this.visible) {
-
                     fieldNames.push(this.name)
                     fieldLabels.push(this.label)
-
                     if (this.type == "NUMBER" || this.type == "MONEY" || this.type == "INTEGER") {
                         metOpt += buildHTML("option", this.label, {value: this.name})
+                        //Multiple-metrics
+                        checkbox = buildHTML("input", "", {value: this.name, type:"checkbox", id: this.name, name:"multi-metrics"})
+                        label = buildHTML("label", this.label, {for: this.name})
+                        funcSel = buildHTML("select", funcOpt, { id: this.name, class: "pickers" })
+                        multiMetricTable.push([checkbox, label, funcSel])
                     } 
                     else if (this.type == "ATTRIBUTE") {
                         dimOpt += buildHTML("option", this.label, {value: this.name})
@@ -113,6 +120,10 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             dimensionSelect = buildHTML("select", dimOpt, {id: "dimension", class:"pickers"})
             trendSelect  = buildHTML("select", trendOpt, {id: "dimension", class:"pickers"})
             metricSelect = buildHTML("select", metOpt, {id: "metric", class:"pickers"})
+            multiMetric = buildHTML("div", makeTable(multiMetricTable, {class:"multi"}), { id: "multimetric", class:"multimetric" })
+
+            //Load the values that comes from the visualization definition
+            v_pickersValues = loadDefinitionPickers() 
 
             //Set the pickers specified by the user (if any) in graph()
             if(v_defPicker) loadUserPickers()
@@ -132,10 +143,20 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                         pickers += "&nbsp;"
                     }
                     else{
-                        text = acc +": <b>"+vals.met+"</b>"
-                        if(vals.func != null) text += "<b>("+vals.func+")</b>"
-                        pickers+= "<button id=\""+id+"\" class=\"btn-metric btnp\" data-name=\""+acc+"\">"+text+"</button>"
-                        pickers += "&nbsp;"
+                        if(vals.length == undefined){ 
+                            text = acc + ": <b>" + vals.met + "</b>"
+                            if (vals.func != null) text += "<b>(" + vals.func + ")</b>"
+                            pickers += "<button id=\"" + id + "\" class=\"btn-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
+                            pickers += "&nbsp;"
+                        }
+                        else{ //A multi-metric chart
+                            if(acc.indexOf("Color") == -1){ //Do not show Bar Color metric for Bars: Multiple Metrics
+                                text = acc + ": <b>(" + vals.length.toString() + " selected)</b>"
+                                if (vals.func != null) text += "<b>(" + vals.func + ")</b>"
+                                pickers += "<button id=\"" + id + "\" class=\"btn-multi-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
+                                pickers += "&nbsp;"
+                            }
+                        }
                     }
                 }
                 $("div#pickers").html(pickers)
@@ -156,10 +177,17 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                                                 style:"width:90%;color:black"})
         var type = v_pickersValues[btnAccessor].type 
         if(type == "ATTRIBUTE"){
-            table = [["Dimension",dimensionSelect],["Sort By", metricSelect],["Operator", funcSelect ], ["Order",sortSelect ],["Limit", limitInput]] 
+            table = [["Dimension",dimensionSelect],
+                     ["Sort By", metricSelect],
+                     ["Operator", funcSelect ], 
+                     ["Order",sortSelect ],
+                     ["Limit", limitInput]] 
         }
         else{ //TIME
-            table = [["Dimension",trendSelect], ["Time", timeSelect], ["Order", cronSelect], ["Limit", limitInput]] 
+            table = [["Dimension",trendSelect], 
+                     ["Time", timeSelect], 
+                     ["Order", cronSelect], 
+                     ["Limit", limitInput]] 
         }
         var content = makeTable(table,{class:"pickers"})
         //Load the selectors with the last used values
@@ -167,6 +195,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         $.confirm({
             title: btnAccessor,
             theme: "black",
+            confirmButton: "Apply",
             confirmButtonClass: "btn-success",
             content: content,
             confirm: function () {
@@ -203,12 +232,15 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         var btn = $(this)
         var btnAccessor = btn.attr("data-name")
         table = [["Metric",metricSelect],["Operator", funcSelect ]]
+        //var content = multiMetric
         var content = makeTable(table,{class: "pickers"})
+        var type = v_pickersValues[btnAccessor].type 
         content = setPickers(content ,v_pickersValues[btnAccessor])
         $.confirm({
             title: btnAccessor,
             theme: "black",
             confirmButtonClass: "btn-success",
+            confirmButton: "Apply",
             content: content,
             confirm: function () {
                 var met = this.$b.find("#metric").val()
@@ -219,6 +251,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 v_pickersValues[btnAccessor] = {
                     met: met,
                     func: func,
+                    type: type
                 }
                 //Set the metric
                 setMetric(btnAccessor)
@@ -227,6 +260,43 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 if(func != ""){
                     metLabel += "<b>("+func+")</b>" 
                 }
+                btn.html(metLabel)
+            }
+        })
+    })
+
+    //Multi-Metric Handler
+    $("body").on("click", "button.btn-multi-metric", function() {
+        var btn = $(this)
+        var btnAccessor = btn.attr("data-name")
+        content = multiMetric
+        content = setPickers(content ,v_pickersValues[btnAccessor])
+        $.confirm({
+            title: btnAccessor,
+            theme: "black",
+            confirmButtonClass: "btn-success",
+            confirmButton: "Apply",
+            content: content,
+            confirm: function() {
+                values = []
+                $("input[name=\"multi-metrics\"]:checked").each(function() {
+                   values.push(this.value); 
+                });
+                console.log(values)
+                v_pickersValues[btnAccessor] = []
+                for(pos in values){
+                    v = values[pos]
+                    v_pickersValues[btnAccessor].push({
+                        met: v,
+                        label: this.$b.find("label[for=\""+v+"\"]").text(),
+                        func: this.$b.find("select#"+v).val()
+                    })
+                }
+                console.log(v_pickersValues)
+                //Set the metric
+                setMetric(btnAccessor)
+                //Update the button text with amount of selected metrics
+                metLabel = btnAccessor+": <b>("+values.length.toString()+" selected)</b>"
                 btn.html(metLabel)
             }
         })
@@ -242,7 +312,5 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             $("#func").prop("disabled", false);
         }
     })
-
-
 })
 

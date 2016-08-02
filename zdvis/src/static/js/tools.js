@@ -1,14 +1,32 @@
-function setPickers(htmlStr, pickersVal){
-    for(key in pickersVal){
+function setPickers(htmlStr, pickersVal) {
+    if(pickersVal.length != undefined){ //When is a multi-metric chart
+        for(pos in pickersVal){
+            //Update the checkbox
+            val = pickersVal[pos].met
+            if (htmlStr.indexOf(val) > -1) {
+                oldStr = "value= \"" + val + "\""
+                newStr = oldStr + " checked=\"checked\""
+                htmlStr = htmlStr.replace(oldStr, newStr)
+                //Update the function select
+                frag = htmlStr.split(val)
+                val = pickersVal[pos].func
+                oldStr = "\"" + val + "\""
+                newStr = oldStr + " selected=\"selected\""
+                replace = frag[4].replace(oldStr, newStr)
+                htmlStr = htmlStr.replace(frag[4], replace)
+            }
+        }
+    }
+    for (key in pickersVal) {
         val = pickersVal[key]
-        if(htmlStr.indexOf(val) > -1){
+        if (htmlStr.indexOf(val) > -1) {
             //Pickers
-            oldStr = "\""+val+"\""
+            oldStr = "\"" + val + "\""
             newStr = oldStr + " selected=\"selected\""
             htmlStr = htmlStr.replace(oldStr, newStr)
         }
     }
-   return htmlStr     
+    return htmlStr
 }
 
 
@@ -16,6 +34,7 @@ function loadDefinitionPickers(){
     //Loads and parse the default visualization values(dimensions and metrics) stored 
     //in the visualization definition
     pickerVals = {}
+    groupBy = "Group By"
     dim = window.viz.dataAccessors.getDimensionAccessors()
     groupCounts = 1
     for (var i = 0; i < dim.length; i++) {
@@ -31,13 +50,13 @@ function loadDefinitionPickers(){
                 accesor = acc
                 if(acc == "Multi Group By"){
                     if(groups[g].type == "ATTRIBUTE"){
-                        accesor = "Group By"
+                        accesor = groupBy
                         //Heat Map & Floating Bubbles contain Group 1 and 2 instead of Group By
                         if(groupCounts > 1){
                           accesor = "Group "+groupCounts.toString()
-                          if(pickerVals.hasOwnProperty("Group By")){
-                              pickerVals["Group 1"] = pickerVals["Group By"]
-                              delete pickerVals["Group By"]
+                          if(pickerVals.hasOwnProperty(groupBy)){
+                              pickerVals["Group 1"] = pickerVals[groupBy]
+                              delete pickerVals[groupBy]
                           }
                         } 
                         groupCounts += 1
@@ -64,12 +83,25 @@ function loadDefinitionPickers(){
     for (var i = 0; i < met.length; i++) {
         for(acc in met[i]){
             m = met[i][acc].getMetric()
-            m = (m != null ) ? [m]: met[i][acc].getMetrics()
-            for(k=0; k<m.length; k++){
+            m = (m != null ) ? m: met[i][acc].getMetrics()
+            if(m.length == undefined ){ //Is only one metric
                 pickerVals[acc] = {
-                    met: m[k].name,
-                    func: m[k].func
+                    met: m.name,
+                    type: m.type,
+                    func: m.func,
+                    label: m.label
                 } 
+            }
+            else{ //Multimetric charts
+                pickerVals[acc] =[]
+                for(k=0; k<m.length; k++){
+                    pickerVals[acc].push({
+                        met: m[k].name,
+                        type: m[k].type,
+                        func: m[k].func,
+                        label: m[k].label
+                    })
+                }
             }
         }
     }
@@ -173,7 +205,7 @@ function makeTable(rows, attrs){
     rows.forEach(function(row){
         tr = "<tr>"
         row.forEach(function(val){
-            tr += "<td style=\"text-align:right\">"+val+"</td>"
+            tr += "<td>"+val+"</td>"
         })
         tr += "</tr>"
         table += tr
@@ -232,10 +264,45 @@ function setDimension(accessorName){
      }
 }
 
-function setMetric(accessorName){
-    val = v_pickersValues[accessorName]
-    metric = {"name": val.met, "func": val.func}
+function getMetricGroup(accessor){
+    val = v_pickersValues[accessor]
+    if(val.length == undefined){
+        if(val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY"){
+            metric = { 
+                      "name": val.met, 
+                      "func": val.func, 
+                      "label": val.label, 
+                    }
+            if(val.met == "count"){
+                metric.func = ""
+            } 
+            return metric 
+        }
+    }
+    else{
+        metrics = []
+        for(pos in val) {
+            metrics.push({ 
+                      "name": val[pos].met, 
+                      "func": val[pos].func, 
+                      "label": val[pos].label, 
+                })
+        }
+        return metrics
+    }
+    return false
+}
+
+function setMetric(accessorName) {
+    metric = getMetricGroup(accessorName)
     accessor = window.viz.dataAccessors[accessorName];
-    accessor.setMetric(metric)
-    console.info(accessorName, metric)
+    console.log(accessorName, metric)
+    try{
+        accessor.setMetric(metric)
+    }
+    catch(err){
+        //This hack is mostly to fix the Line Trend: Multiple Metric bug
+        accessor.isColor = false; 
+        accessor.resetMetrics(metric)
+    }
 }
