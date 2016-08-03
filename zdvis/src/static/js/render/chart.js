@@ -177,15 +177,15 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                                                 style:"width:90%;color:black"})
         var type = v_pickersValues[btnAccessor].type 
         if(type == "ATTRIBUTE"){
-            table = [["Dimension",dimensionSelect],
+            table = [["Attribute",dimensionSelect],
                      ["Sort By", metricSelect],
                      ["Operator", funcSelect ], 
                      ["Order",sortSelect ],
                      ["Limit", limitInput]] 
         }
         else{ //TIME
-            table = [["Dimension",trendSelect], 
-                     ["Time", timeSelect], 
+            table = [["Time Attribute",trendSelect], 
+                     ["Granularity", timeSelect], 
                      ["Order", cronSelect], 
                      ["Limit", limitInput]] 
         }
