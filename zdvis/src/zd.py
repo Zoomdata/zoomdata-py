@@ -330,12 +330,12 @@ class ZDVisualization(object):
         """
         return self.graph(self._source, 'Heat Map', pickers, conf, filters, time)
 
-    def mapMarkers(self, filters={}):
+    def mapMarkers(self):
         """
         Renders a Map: Markers visualization for the default source if defined. 
         This type of chart must be supported by the source
         """
-        return self.graph(self._source, 'Map: Markers', False, conf, filters)
+        return self.graph(self._source, 'Map: Markers', False)
 
     def kpi(self, pickers=True, filters={}, time={}, **conf):
         """
@@ -357,7 +357,6 @@ class ZDVisualization(object):
         Parameters:
             Set of optional attributes to use as default (if supported): 
             - pickers: Boolean. Show the pickers (dimension and metrics drop-downs) or not. True by default
-            - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
             - filters: List of dictionaries: Each dictionary must contain the name of the field to be used as a filter and 
                 a list of values that the data must match. The name of the fields can be obtained through ZD.fields()
                 Ex: {'field1':['value1','value2'], 'field2':'value1'}
