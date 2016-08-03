@@ -96,16 +96,18 @@ class RestCalls(object):
             print(resp)
             return False
 
-    def getVisualizationsList(self, url, headers):
+    def getVisualizationsList(self, url, headers={}, token=False):
         """ Get the list of all visualizations allowed by Zoomdata """
         service = '/service/visualizations'
+        if token:
+            service += '?access_token='+token
         try:
             r = http.request('GET', url+service, headers=headers)
         except MaxRetryError:
             print(TIMEOUT_MSG)
             return False
         if r.status in [200]:
-            vis = [{'id': d['id'], 'name': d['name']} for d in json.loads(data(r))]
+            vis = [{'id': d['id'], 'name': d['name'], 'type':d['type']} for d in json.loads(data(r))]
             return vis
         print(data(r))
         return False
