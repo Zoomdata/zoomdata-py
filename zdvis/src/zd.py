@@ -13,7 +13,10 @@ from .config import *
 from .jsbuilder import JSBuilder
 from IPython.display import display, HTML
 
-SOURCES_JSON_FILE = os.environ.get("HOME") + "/.sources.json"
+home_dir = os.path.expanduser('~')
+
+SOURCES_JSON_FILE = home_dir + "/.sources.json"
+USERDATA_FILE = home_dir + "/.userdata.pkl"
 
 rest = RestCalls()
 vd = VisDefinition()
@@ -102,7 +105,7 @@ class ZDVisualization(object):
     def _oauth(self, user):
         # Ideally this should go within data_handler
         self._user = user
-        datafile = open('/var/userdata.pkl', 'rb')
+        datafile = open(USERDATA_FILE, 'rb')
         data = pickle.load(datafile)
         userdata = data.get(user, False)
         datafile.close()
