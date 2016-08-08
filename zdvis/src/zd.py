@@ -513,7 +513,7 @@ class ZDVisualization(object):
 
             #Check the source saved data match the one with zoomdata
             if(self._conf['headers']['Authorization']):
-                check_source_id = rest.getSourceID(self._serverURL, self._conf['headers'], source)
+                check_source_id = rest.getSourceID(self._serverURL, self._conf['headers'], nsource)
             else:
                 print('You need to authenticate: ZD.auth("user","password")')
                 return False
