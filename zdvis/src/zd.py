@@ -133,7 +133,7 @@ class ZDVisualization(object):
                 dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
         """
         if(self._conf['headers']['Authorization']):
-            sources = rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._account)
+            sources = rest.getAllSources(self._serverURL, self._conf['headers'])
             if sourceName not in sources:  
                 print('%s is not a valid source. Execute ZD.sources() to get a list of available sources' % sourceName)
             else:
@@ -164,7 +164,7 @@ class ZDVisualization(object):
             if resp and upd:
                 # Avoid using wrong (deprecated) keys in case an old source with the same name
                 # existed. This is only for new sources
-                self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
+                self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], sourceName)
                 acc_token = False if self._token == '' else self._token
                 self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
                 self._source = sourceName
@@ -180,7 +180,7 @@ class ZDVisualization(object):
     def sources(self):
         """ List the availables sources for the account"""
         if(self._conf['headers']['Authorization']):
-            sources = rest.getSourcesByAccount(self._serverURL, self._conf['headers'], self._account)
+            sources = rest.getAllSources(self._serverURL, self._conf['headers'])
             if sources:
                 count = 1
                 for s in sources:
@@ -390,7 +390,7 @@ class ZDVisualization(object):
         source_id = self._source_id
         if sourceName:
             print('Retrieving specified source...')
-            source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
+            source_id = rest.getSourceID(self._serverURL, self._conf['headers'], sourceName)
         if source_id:
             print('Fetching source parameters...')
             vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
@@ -416,7 +416,7 @@ class ZDVisualization(object):
         source_id = self._source_id
         if sourceName:
             print('Retrieving specified source...')
-            source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, sourceName)
+            source_id = rest.getSourceID(self._serverURL, self._conf['headers'], sourceName)
         if source_id:
             print('Fetching source fields...')
             vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
@@ -508,7 +508,7 @@ class ZDVisualization(object):
                 credentials = self._source_credentials[nsource][0] # The key of the source
                 source_id = self._source_credentials[nsource][1] # The id of the source
             else:
-                source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, nsource)
+                source_id = rest.getSourceID(self._serverURL, self._conf['headers'], nsource)
 
             if not credentials: 
                 acc_token = False if self._token == '' else self._token
@@ -610,7 +610,7 @@ class ZDVisualization(object):
                 source_id = self._source_credentials[source][1] # The id of the source
             else:
                 if(self._conf['headers']['Authorization']):
-                    source_id = rest.getSourceID(self._serverURL, self._conf['headers'], self._account, source)
+                    source_id = rest.getSourceID(self._serverURL, self._conf['headers'], source)
                 else:
                     print('You need to authenticate: ZD.auth("user","password")')
                     return False
@@ -695,7 +695,13 @@ class ZDVisualization(object):
                         dfParsed.append(row)
                     dataframe = dfParsed
                 if fields:
-                    return pd.DataFrame(dataframe, columns=fields)
+                    #Parse the right field type
+                    dataframe = pd.DataFrame(dataframe, columns=fields)
+                    vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
+                    for f in vis['objectFields']:
+                        if f['name'] in fields and f['type'] == 'TIME': 
+                            dataframe[f['name']] = pd.to_datetime(dataframe[f['name']])
+                    return dataframe
                 return pd.DataFrame(dataframe)
             print('No data was returned')
             return False

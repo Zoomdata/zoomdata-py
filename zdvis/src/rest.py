@@ -96,6 +96,20 @@ class RestCalls(object):
             print(resp)
             return False
 
+    def getAllSources(self, url, headers):
+        service = '/service/sources?fields=name'
+        try:
+            r = http.request('GET', url+service ,headers=headers)
+        except MaxRetryError:
+            print(TIMEOUT_MSG)
+            return False
+        resp= json.loads(data(r))
+        if resp:
+            return [d['name'] for d in resp]
+        else: 
+            print(resp)
+            return False
+
     def getVisualizationsList(self, url, headers={}, token=False):
         """ Get the list of all visualizations allowed by Zoomdata """
         service = '/service/visualizations'
@@ -141,9 +155,11 @@ class RestCalls(object):
             print(data(r))
         return False
 
-    def getSourceID(self, url, headers, accountID, sourceName, printError = True):
-        # https://pubsdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/name/Ticket%20Sales
-        service = '/api/accounts/'+accountID+'/sources/name/'+sourceName.replace(' ','%20')
+    def getSourceID(self, url, headers, sourceName, printError = True, token = False):
+        # https://pubsdk.zoomdata.com:8443/zoomdata/service/sources?fields=name&access_token=
+        service = '/service/sources?fields=name'
+        if token:
+            service += '&access_token='+ token
         try:
             r = http.request('GET', url+service, headers=headers)
         except MaxRetryError:
@@ -151,12 +167,13 @@ class RestCalls(object):
             return False
         if r.status in [200]:
             resp= json.loads(data(r))
-            href = [l['href'] for l in resp['links'] if l['rel'] == 'self']
-            # https://server:port/zoomdata/api/sources/
-            return href[0].split('/')[-1]
+            for source in resp:
+                if source['name'] == sourceName:
+                    return source['id']
         if printError:
             print(data(r))
         return False
+
     
     def createSourceFromData(self, url, headers, accountId, sourceName, df, urlParams={}, replace=False):
         # Creates or uses a source to populate it with data (from a dataframe)
