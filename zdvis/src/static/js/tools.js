@@ -22,8 +22,8 @@ function setPickers(htmlStr, pickersVal) {
         if (htmlStr.indexOf(val) > -1) {
             //Pickers
             oldStr = "\"" + val + "\""
-            newStr = oldStr + " selected=\"selected\""
-            htmlStr = htmlStr.replace(oldStr, newStr)
+            newStr = oldStr + " selected=\"selected\">"
+            htmlStr = htmlStr.replace(oldStr + ">", newStr)
         }
     }
     return htmlStr
@@ -112,6 +112,8 @@ function loadDefinitionPickers(){
 function checkValue(val){
     //Check if the fields specified by the user in graph() are correctly
     //Also support the field name or field label: qtysold / Quantity Sold 
+    fieldNames = dimensionFields.fields.concat(metricFields.fields)
+    fieldLabels = dimensionFields.labels.concat(metricFields.labels)
     if($.inArray(val, fieldNames) > -1) return val; 
     pos = $.inArray(val, fieldLabels)
     if(pos > -1) return fieldNames[pos];
@@ -236,7 +238,7 @@ function getDimensionGroup(accessor){
             group.sort.name = group.name; //The same time field
             delete group.sort.metricFunc; //No operation
         } 
-        if(group.sort.name == "count"){
+        if(group.sort.name == "count" || group.sort.name == group.name){
             delete group.sort.metricFunc;
         }
         return group

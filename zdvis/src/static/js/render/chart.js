@@ -51,8 +51,8 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     timeSelect = buildHTML("select", timeOpt , {id: "time", class:"pickers"})
 
     //This is to validate correct pickers field names/labels specified by the user in graph()
-    var fieldNames  = []
-    var fieldLabels = []
+    var metricFields = {fields:[], labels:[]}
+    var dimensionFields = {fields:[], labels:[]}
 
     //Start the visualization
     ZoomdataSDK.createClient({
@@ -103,9 +103,11 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
 
             $.each(window.viz.source.objectFields, function() {
                 if (this.visible) {
-                    fieldNames.push(this.name)
-                    fieldLabels.push(this.label)
                     if (this.type == "NUMBER" || this.type == "MONEY" || this.type == "INTEGER") {
+                        //Save the metric field and label
+                        metricFields.fields.push(this.name)
+                        metricFields.labels.push(this.label)
+                        //Create the select
                         metOpt += buildHTML("option", this.label, {value: this.name})
                         //Multiple-metrics
                         checkbox = buildHTML("input", "", {value: this.name, type:"checkbox", id: this.name, name:"multi-metrics"})
@@ -114,9 +116,13 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                         multiMetricTable.push([checkbox, label, funcSel])
                     } 
                     else if (this.type == "ATTRIBUTE") {
+                        dimensionFields.fields.push(this.name)
+                        dimensionFields.labels.push(this.label)
                         dimOpt += buildHTML("option", this.label, {value: this.name})
                     }
                     else if (this.type == "TIME") {
+                        dimensionFields.fields.push(this.name)
+                        dimensionFields.labels.push(this.label)
                         trendOpt += buildHTML("option", this.label, {value: this.name})
                     }
                 }
@@ -180,11 +186,37 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                                                 value: v_pickersValues[btnAccessor].limit, 
                                                 style:"width:90%;color:black"})
         var type = v_pickersValues[btnAccessor].type 
+
+        //Place in the sort by select, the selected dimension
+        dim = v_pickersValues[btnAccessor].field
+        label = dimensionFields.labels[dimensionFields.fields.indexOf(dim)]
+        find = "</option></select>"
+        selDimOpt = buildHTML("option", label , { value: dim })
+        selDimOpt = "</option>" + selDimOpt + "</select>"
+        var newMetricSelect = metricSelect.replace(find, selDimOpt)
+        var newFuncSelect = funcSelect
+        var newSortSelect = sortSelect 
+
+        //Set the func select as disabled and the label to alphabetical if sort = field
+        if(dim == v_pickersValues[btnAccessor].sort){
+            find = "id= \"func\""
+            rep = find + " disabled"
+            newFuncSelect = funcSelect.replace(find, rep)
+            newSortSelect = sortSelect.replace("ASC", "Alphabetical")
+            newSortSelect = newSortSelect.replace("DESC", "Reverse alphabetical")
+        }
+        //Set the func select as disabled if sort is count
+        if(v_pickersValues[btnAccessor].sort == "count"){
+            find = "id= \"func\""
+            rep = find + " disabled"
+            newFuncSelect = funcSelect.replace(find, rep)
+        }
+
         if(type == "ATTRIBUTE"){
             table = [["Attribute",dimensionSelect],
-                     ["Sort By", metricSelect],
-                     ["Operator", funcSelect ], 
-                     ["Order",sortSelect ],
+                     ["Sort By", newMetricSelect],
+                     ["Operator", newFuncSelect ], 
+                     ["Order",newSortSelect ],
                      ["Limit", limitInput]] 
         }
         else{ //TIME
@@ -219,6 +251,10 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                     limit: parseInt(limit),
                     type: type
                 }
+                //If selected sortby is the attribute, func must be null
+                if(metricFields.fields.indexOf(sortby) == -1){
+                    v_pickersValues[btnAccessor].mfunc = undefined
+                }
                 //Set the dimension
                 setDimension(btnAccessor)
                 //Update the button text with the selected dimension
@@ -235,7 +271,14 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     $("body").on("click","button.btn-metric", function() {
         var btn = $(this)
         var btnAccessor = btn.attr("data-name")
-        table = [["Metric",metricSelect],["Operator", funcSelect ]]
+        var newFuncSelect = funcSelect
+        //Set the func select as disabled if sort is count
+        if(v_pickersValues[btnAccessor].met == "count"){
+            find = "id= \"func\""
+            rep = find + " disabled"
+            newFuncSelect = funcSelect.replace(find, rep)
+        }
+        table = [["Metric",metricSelect],["Operator", newFuncSelect ]]
         //var content = multiMetric
         var content = makeTable(table,{class: "pickers"})
         var type = v_pickersValues[btnAccessor].type 
@@ -310,11 +353,38 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     $("body").on("change", "select#metric", function(){
         met = $("select#metric").val();
         if(met == "count"){
-            $("#func").prop("disabled", "disabled");
+            $("select#func").prop("disabled", "disabled");
         }
         else{
-            $("#func").prop("disabled", false);
+            $("select#func").prop("disabled", false);
         }
+    })
+
+    //Append dimension to metric to allow alphabetical sorting
+    $("body").on("change", "select#dimension", function() {
+       if($("select#metric option").length != metricFields.fields.length ){
+          $("select#metric").find("option:last").remove();
+       }
+       $("select#metric").append($("<option>", {
+          value: $( "select#dimension option:selected" ).val(),
+          text: $( "select#dimension option:selected" ).text(),
+       }));
+       if($("select#dimension option:selected").text() != $( "select#metric option:selected" ).text()){
+          $("select#func").prop("disabled", false);
+       }
+   })
+
+    $("body").on("change", "select#metric", function() {
+       if($("select#dimension option:selected").text() == $( "select#metric option:selected" ).text()){
+          $("select#func").prop("disabled", "disabled");
+          $("select#sort option:contains(\"ASC\")").text("Alphabetical");
+          $("select#sort option:contains(\"DESC\")").text("Reverse alphabetical");
+       }
+       else{
+          $("select#func").prop("disabled", false);
+          $("select#sort option:contains(\"Alphabetical\")").text("ASC");
+          $("select#sort option:contains(\"Reverse alphabetical\")").text("DESC");
+       }
     })
 })
 
