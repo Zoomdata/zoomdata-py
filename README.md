@@ -1,6 +1,6 @@
 # Jupyter - ZDvis
 
-ZDVIS is a python3 module that puts the power of Zoomdata straight into your Jupyter notebooks (http://jupyter.org).  For example, users can register pandas dataframes as Zoomdata sources, easily render many types of visualizations, and create pandas dataframes from any Zoomdata source.
+ZDVIS is a python3 module that puts the power of Zoomdata straight into your Jupyter notebooks (http://jupyter.org).  For example, users can register pandas dataframes as Zoomdata sources, easily render many types of visualizations, and create pandas dataframes from any Zoomdata source. It supports Zoomdata v2.2.
 
 ## Python dependencies
 
