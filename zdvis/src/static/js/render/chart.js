@@ -84,6 +84,10 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             window.viz = result;
             console.log("Result",result);
 
+            //Set the colors if specified
+            for(acc in v_colors){
+                window.viz.dataAccessors[acc].setColorSet(v_colors[acc])
+            }
 
             //Fill and create the selectors with the source fields
             var dimOpt = buildHTML("option","Select attribute", {value:""})

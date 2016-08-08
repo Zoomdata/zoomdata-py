@@ -26,6 +26,7 @@ class VisRender(object):
         self.variables = params['variables']
         self.filters= params['filters']
         self.time = params['time']
+        self.colors = params['colors']
         #if graph_filters are specified, overwrite the ZD._filters
         #This implementation is is for the following filter syntax:
         # Ex: {'field1':['value1','value2'], 'field2':'value1'}
@@ -73,9 +74,10 @@ class VisRender(object):
         filters = js.var('v_filters', js.s(self.filters))
         timeFilter = js.var('v_time', js.s(self.time))
         variables = js.var('v_vars', js.s(self.variables))
+        colors = js.var('v_colors', js.s(self.colors))
         visualDiv = 'visual%s' % (str(renderCount))
         divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
-        return tools + cred + conf + source + filters + timeFilter + variables + divLocation + defPicker
+        return tools + cred + conf + source + filters + timeFilter + variables + colors + divLocation + defPicker
     
     def setJSCode(self, renderCount, pickers, showPickers):
         # Default pickers values to render the table

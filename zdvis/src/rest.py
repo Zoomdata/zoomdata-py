@@ -170,7 +170,7 @@ class RestCalls(object):
             for source in resp:
                 if source['name'] == sourceName:
                     return source['id']
-        if printError:
+        if printError and r.status != 200:
             print(data(r))
         return False
 
