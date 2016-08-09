@@ -178,7 +178,7 @@ class RestCalls(object):
     def createSourceFromData(self, url, headers, accountId, sourceName, df, urlParams={}, replace=False):
         # Creates or uses a source to populate it with data (from a dataframe)
         # Check if the source exists
-        sourceId = self.getSourceID(url, headers, accountId, sourceName, printError=False)
+        sourceId = self.getSourceID(url, headers, sourceName, printError=False)
         newSource = False
         if not sourceId:
             newSource = True
