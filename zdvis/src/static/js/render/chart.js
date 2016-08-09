@@ -24,6 +24,9 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     var trendSelect = ""
     var metricSelect = ""
 
+    //The label for the volume may change
+    var volumeLabel= "Count"
+
     //Operation for Metric selectors
     funcs = ["Sum","Avg","Min","Max"]
     var funcOpt = ""
@@ -95,15 +98,18 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 window.viz.dataAccessors[acc].setColorSet(v_colors[acc])
             }
 
+            //Get the correct label for the volume
+            volumeLabel = window.viz.source.volumeMetric.label
+
             //Fill and create the selectors with the source fields
             var dimOpt = buildHTML("option","Select attribute", {value:""})
             var metOpt = buildHTML("option","Select metric", {value:""})
-                metOpt += buildHTML("option","Count", {value:"count"})
+                metOpt += buildHTML("option", volumeLabel, {value:"count"})
             var trendOpt = buildHTML("option","Select attribute ", {value:""})
 
             var multiMetricTable = []
             checkbox = buildHTML("input", "", {value: "count", type:"checkbox", id: "count", name:"multi-metrics"})
-            label = buildHTML("label", "Count", {for: "count"})
+            label = buildHTML("label", volumeLabel, {for: "count"})
             hidden = buildHTML("input", "", {data: "count", type:"hidden"}) //This is a hack for the setPickers function
             multiMetricTable.push([checkbox, label, hidden])
 
