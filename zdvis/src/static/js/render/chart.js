@@ -42,6 +42,12 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     cronOpt += buildHTML("option", "Reverse chronological", {value: "desc"})
     var cronSelect = buildHTML("select", cronOpt , {id: "sort", class:"pickers"})
 
+    //Bars settings for histogram chart
+    barsOpt = buildHTML("option", "Auto", {value: "histogram"})
+    barsOpt += buildHTML("option", "Limit to", {value: "histogram_by_count"})
+    barsOpt += buildHTML("option", "Interval", {value: "histogram_by_size"})
+    var barsSelect  = buildHTML("select", barsOpt, {id: "func", class:"pickers"})
+
     //Unit time selector
     granularities= ["MINUTE","HOUR","DAY","WEEK","MONTH","YEAR"]
     var timeOpt = ""
@@ -140,33 +146,39 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             console.log("Pickers",v_pickersValues)
             
             //Set the dimension & metric pickers buttons in the DOM
-            if(v_showPickers){ //If the user wants to see the pickers
+            if (v_showPickers) { //If the user wants to see the pickers
                 pickers = ""
-                for(acc in v_pickersValues){
-                    id=acc.toLowerCase().replace(/ /g, "-")
+                for (acc in v_pickersValues) {
+                    id = acc.toLowerCase().replace(/ /g, "-")
                     text = acc
-                    vals =  v_pickersValues[acc]
-                    if(vals.type == "ATTRIBUTE" || vals.type == "TIME"){
-                        text = acc +": <b>"+vals.field+"</b>"
-                        if(vals.time != null) text += "<b>("+vals.time+")</b>"
-                        pickers+= "<button id=\""+id+"\" class=\"btn-dimension btnp\" data-name=\""+acc+"\">"+text+"</button>"
+                    vals = v_pickersValues[acc]
+                    if (vals.type == "ATTRIBUTE" || vals.type == "TIME") {
+                        text = acc + ": <b>" + vals.field + "</b>"
+                        if (vals.func != null && !v_isHistogram) text += "<b>(" + vals.func + ")</b>"
+                        pickers += "<button id=\"" + id + "\" class=\"btn-dimension btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                         pickers += "&nbsp;"
-                    }
-                    else{
-                        if(vals.length == undefined){ 
-                            text = acc + ": <b>" + vals.met + "</b>"
-                            if (vals.func != null) text += "<b>(" + vals.func + ")</b>"
-                            pickers += "<button id=\"" + id + "\" class=\"btn-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
-                            pickers += "&nbsp;"
-                        }
-                        else{ //A multi-metric chart
-                            if(acc.indexOf("Color") == -1){ //Do not show Bar Color metric for Bars: Multiple Metrics
-                                text = acc + ": <b>(" + vals.length.toString() + " selected)</b>"
+                    } else {
+                        if (!v_isHistogram){
+                            if (vals.length == undefined) {
+                                text = acc + ": <b>" + vals.met + "</b>"
                                 if (vals.func != null) text += "<b>(" + vals.func + ")</b>"
-                                pickers += "<button id=\"" + id + "\" class=\"btn-multi-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
+                                pickers += "<button id=\"" + id + "\" class=\"btn-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                                 pickers += "&nbsp;"
+                            } else { //A multi-metric chart
+                                if (acc.indexOf("Color") == -1) { //Do not show Bar Color metric for Bars: Multiple Metrics
+                                    text = acc + ": <b>(" + vals.length.toString() + " selected)</b>"
+                                    if (vals.func != null) text += "<b>(" + vals.func + ")</b>"
+                                    pickers += "<button id=\"" + id + "\" class=\"btn-multi-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
+                                    pickers += "&nbsp;"
+                                }
                             }
                         }
+                        else{ //A histogram bar
+                                text = "Histogram: <b>" + vals.field + "</b>"
+                                pickers += "<button id=\"" + id + "\" class=\"btn-histogram btnp\" data-name=\"" + acc + "\">" + text + "</button>"
+                                pickers += "&nbsp;"
+                        }
+
                     }
                 }
                 $("div#pickers").html(pickers)
@@ -184,7 +196,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         var btnAccessor = btn.attr("data-name")
         var limitInput = buildHTML("input","",{ id:"limit", 
                                                 value: v_pickersValues[btnAccessor].limit, 
-                                                style:"width:90%;color:black"})
+                                                class:"value-input"})
         var type = v_pickersValues[btnAccessor].type 
 
         //Place in the sort by select, the selected dimension
@@ -244,7 +256,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 //Save the values
                 v_pickersValues[btnAccessor] = {
                     field: field,
-                    time: time,
+                    func: time,
                     sort: sortby,
                     mfunc: metFunc,
                     dir: dir,
@@ -312,6 +324,58 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         })
     })
 
+    //Histogram Handler
+    $("body").on("click","button.btn-histogram", function() {
+        var btn = $(this)
+        var btnAccessor = btn.attr("data-name")
+        var argsInput = buildHTML("input","",{ id:"args", 
+                                                value: v_pickersValues[btnAccessor].args, 
+                                                class:"value-input"})
+        //Set the args input as disabled if sort is count
+        if(v_pickersValues[btnAccessor].func == "$histogram"){
+            find = "value-input\""
+            rep = "value-input disabled\" disabled=\"disabled\""
+            argsInput = argsInput.replace(find, rep)
+            argsInput = argsInput.replace("undefined", "0")
+        }
+        table = [["Attribute",metricSelect],["Bars Settings", barsSelect],["Bars", argsInput]]
+        var content = makeTable(table,{class: "pickers"})
+        var type = v_pickersValues[btnAccessor].type 
+        content = setPickers(content ,v_pickersValues[btnAccessor])
+        $.confirm({
+            title: "Histogram Settings",
+            theme: "black",
+            confirmButtonClass: "btn-success",
+            confirmButton: "Apply",
+            content: content,
+            confirm: function () {
+                var field = this.$b.find("#metric").val()
+                var histgrm = "$"+this.$b.find("#func").val()
+                var fieldLabel= this.$b.find("#metric option:selected").text()
+                var args = this.$b.find("#args").val()
+                //Save the values
+                    v_pickersValues[btnAccessor] = {
+                        field: field,
+                        sort: field,
+                        func: histgrm,
+                        mfunc: undefined,
+                        label: fieldLabel,
+                        args: parseInt(args),
+                        dir: "desc",
+                        limit: 10000,
+                        type: type
+                    }
+
+                //Set the metric
+                setDimension(btnAccessor)
+                //Update the button text with the selected metric
+                label = "Histogram: <b>"+field+"</b>"
+                btn.html(label)
+
+            }
+        })
+    })
+
     //Multi-Metric Handler
     $("body").on("click", "button.btn-multi-metric", function() {
         var btn = $(this)
@@ -357,6 +421,19 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         }
         else{
             $("select#func").prop("disabled", false);
+        }
+    })
+
+    //Disable the value input if bars setting for histogram is auto
+    $("body").on("change", "select#func", function(){
+        setting = $("select#func").val();
+        if(setting == "histogram"){
+            $("#args").prop("disabled", true);
+            $("#args").addClass("disabled");
+        }
+        else{
+            $("#args").prop("disabled", false);
+            $("#args").removeClass("disabled");
         }
     })
 

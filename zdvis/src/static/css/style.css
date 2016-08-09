@@ -51,3 +51,14 @@ label{
     font-weight:normal;
 }
 
+.value-input{
+    border-radius:3px;
+    border: none;
+    font-size: 12.5px;
+    width:90%;
+    color:black
+}
+.disabled{
+    background-color: #DDD;
+    color: #808080;
+}

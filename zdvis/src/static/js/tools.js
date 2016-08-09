@@ -19,6 +19,9 @@ function setPickers(htmlStr, pickersVal) {
     }
     for (key in pickersVal) {
         val = pickersVal[key]
+        if(typeof(val) == "string"){
+            val = val.replace("$","")
+        }
         if (htmlStr.indexOf(val) > -1) {
             //Pickers
             oldStr = "\"" + val + "\""
@@ -68,11 +71,13 @@ function loadDefinitionPickers(){
                 pickerVals[accesor] ={
                     field: groups[g].name,
                     sort:  groups[g].sort.name,
-                    time:  groups[g].func,
+                    func:  groups[g].func,
+                    args:  groups[g].args,
+                    label: groups[g].label,
                     mfunc: groups[g].sort.metricFunc,
                     dir:   groups[g].sort.dir,
                     limit: groups[g].limit,
-                    type: groups[g].type
+                    type:  groups[g].type
                 } 
             }
         }
@@ -159,7 +164,7 @@ function loadUserPickers(){
         }
         else if(acc == "Trend Attribute"){
             v_pickersValues[acc].field = getValue(v_pickersValues[acc].field, v_defPicker.trend)
-            if(v_defPicker.time) v_pickersValues[acc].time = v_defPicker.time
+            if(v_defPicker.time) v_pickersValues[acc].func = v_defPicker.time
             setDimension(acc)
         }
         else if(acc == "Metric"){
@@ -226,20 +231,29 @@ function buildHTML(tag, html, attrs){
 
 function getDimensionGroup(accessor){
     val = v_pickersValues[accessor]
-    if(val.type == "ATTRIBUTE" || val.type == "TIME"){
-        group = { 
-                  "name": val.field, 
-                  "sort":{ "name": val.sort, "dir": val.dir, "metricFunc": val.mfunc}, 
-                  "limit": val.limit, 
-                  "type": val.type
-                }
-        if(val.type == "TIME"){
-            group.func = val.time; //The granularity
+    if( val.type == "TIME" || val.type == "ATTRIBUTE" || 
+      ( (val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY") && v_isHistogram ) ){
+        group = {
+            "name": val.field,
+            "sort": {
+                "name": val.sort,
+                "dir": val.dir,
+                "metricFunc": val.mfunc
+            },
+            "limit": val.limit,
+            "type": val.type
+        }
+        if (val.type == "TIME") {
+            group.func = val.func; //The granularity
             group.sort.name = group.name; //The same time field
             delete group.sort.metricFunc; //No operation
-        } 
-        if(group.sort.name == "count" || group.sort.name == group.name){
+        }
+        if (group.sort.name == "count" || group.sort.name == group.name) {
             delete group.sort.metricFunc;
+        }
+        if (v_isHistogram) {
+            group.func = val.func
+            group.args = val.args
         }
         return group
     }

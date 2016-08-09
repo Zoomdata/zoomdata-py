@@ -63,21 +63,27 @@ class VisRender(object):
             code = ''.join(f.readlines())
         return code 
 
-    def getInitVars(self, defPicker, renderCount):
+    def getInitVars(self, defPicker, renderCount, showPickers):
         #=== Common Vars declaration =======
-        tools = self.getJSTools()
-        defPicker = js.var('v_defPicker', js.s(defPicker))
         creds = {'key': self.credentials}
-        cred = js.var('v_credentials', js.s(creds))
-        conf = js.var('v_conf', js.s(self.conf))
-        source = js.var('v_source', js.s(self.source))
-        filters = js.var('v_filters', js.s(self.filters))
-        timeFilter = js.var('v_time', js.s(self.time))
-        variables = js.var('v_vars', js.s(self.variables))
-        colors = js.var('v_colors', js.s(self.colors))
         visualDiv = 'visual%s' % (str(renderCount))
-        divLocation = js.var('v_divLocation','document.getElementById("'+visualDiv+'")')
-        return tools + cred + conf + source + filters + timeFilter + variables + colors + divLocation + defPicker
+        histogram =  "true" if "Histogram" in self.chart else "false"
+        initVars = [
+            self.getJSTools(),
+            js.var('v_defPicker', js.s(defPicker)),
+            js.var('v_credentials', js.s(creds)),
+            js.var('v_conf', js.s(self.conf)),
+            js.var('v_source', js.s(self.source)),
+            js.var('v_filters', js.s(self.filters)),
+            js.var('v_time', js.s(self.time)),
+            js.var('v_vars', js.s(self.variables)),
+            js.var('v_colors', js.s(self.colors)),
+            js.var('v_divLocation','document.getElementById("'+visualDiv+'")'),
+            js.var('v_chart', js.s(self.chart)),
+            js.var('v_showPickers', js.s(showPickers)),
+            js.var("v_isHistogram", histogram)
+        ]
+        return "".join(initVars)
     
     def setJSCode(self, renderCount, pickers, showPickers):
         # Default pickers values to render the table
@@ -98,14 +104,10 @@ class VisRender(object):
                           "time":pickers.get('unit',False),
                           "limit":pickers.get('limit',False)
                     }
-        # Vars declaration 
-        initVars = self.getInitVars(defPicker, renderCount)
+        initVars = self.getInitVars(defPicker, renderCount, showPickers)
         code = self.getJSCode('chart')
-        chart = js.var('v_chart', js.s(self.chart))
-        showP = js.var('v_showPickers', js.s(showPickers))
         #Wrap it up!
-        _initial_vars = initVars + chart + showP
-        jscode = code.replace("_INITIAL_VARS_", _initial_vars)
+        jscode = code.replace("_INITIAL_VARS_", initVars)
         return jscode
 
     def getVisualization(self, renderCount, pickers, showPickers):
