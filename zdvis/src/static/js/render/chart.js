@@ -159,28 +159,30 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                     text = acc
                     vals = v_pickersValues[acc]
                     if (vals.type == "ATTRIBUTE" || vals.type == "TIME") {
-                        text = acc + ": <b>" + vals.field + "</b>"
-                        if (vals.func != null && !v_isHistogram) text += "<b>(" + vals.func + ")</b>"
+                        label = dimensionFields.labels[dimensionFields.fields.indexOf(vals.field)]
+                        text = acc + ": <b>" + label + "</b>"
+                        if (vals.func != null && !v_isHistogram) text += "<b> (" + vals.func + ")</b>"
                         pickers += "<button id=\"" + id + "\" class=\"btn-dimension btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                         pickers += "&nbsp;"
                     } else {
+                        label = (vals.met == "count") ? volumeLabel : metricFields.labels[metricFields.fields.indexOf(vals.met)]
                         if (!v_isHistogram){
                             if (vals.length == undefined) {
-                                text = acc + ": <b>" + vals.met + "</b>"
-                                if (vals.func != null) text += "<b>(" + vals.func + ")</b>"
+                                text = acc + ": <b>" + label + "</b>"
+                                if (vals.func != null) text += "<b> (" + vals.func + ")</b>"
                                 pickers += "<button id=\"" + id + "\" class=\"btn-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                                 pickers += "&nbsp;"
                             } else { //A multi-metric chart
                                 if (acc.indexOf("Color") == -1) { //Do not show Bar Color metric for Bars: Multiple Metrics
-                                    text = acc + ": <b>(" + vals.length.toString() + " selected)</b>"
-                                    if (vals.func != null) text += "<b>(" + vals.func + ")</b>"
+                                    text = acc + ": <b> (" + vals.length.toString() + " selected)</b>"
+                                    if (vals.func != null) text += "<b> (" + vals.func + ")</b>"
                                     pickers += "<button id=\"" + id + "\" class=\"btn-multi-metric btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                                     pickers += "&nbsp;"
                                 }
                             }
                         }
                         else{ //A histogram bar
-                                text = "Histogram: <b>" + vals.field + "</b>"
+                                text = "Histogram: <b>" + label + "</b>"
                                 pickers += "<button id=\"" + id + "\" class=\"btn-histogram btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                                 pickers += "&nbsp;"
                         }
@@ -259,6 +261,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 var metFunc = this.$b.find("#func").val()
                 var dir = this.$b.find("#sort").val()
                 var limit = this.$b.find("#limit").val()
+                var label = this.$b.find("#dimension option:selected").text()
                 //Save the values
                 v_pickersValues[btnAccessor] = {
                     field: field,
@@ -276,9 +279,9 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 //Set the dimension
                 setDimension(btnAccessor)
                 //Update the button text with the selected dimension
-                fieldLabel = btnAccessor + ": <b>"+field+"</b>"
+                fieldLabel = btnAccessor + ": <b>"+label+"</b>"
                 if(type == "TIME") { 
-                    fieldLabel += "<b>("+time+")</b>"
+                    fieldLabel += "<b> ("+time+")</b>"
                 }
                 btn.html(fieldLabel)
             }
@@ -309,8 +312,8 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             content: content,
             confirm: function () {
                 var met = this.$b.find("#metric").val()
-                var metLabel = this.$b.find("#metric option:selected").text()
                 var func = this.$b.find("#func").val()
+                var label = this.$b.find("#metric option:selected").text()
                 func = (met == "count") ? "" : func
                 //Save the values
                 v_pickersValues[btnAccessor] = {
@@ -321,9 +324,9 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 //Set the metric
                 setMetric(btnAccessor)
                 //Update the button text with the selected metric
-                metLabel = btnAccessor+": <b>"+met+"</b>"
+                metLabel = btnAccessor+": <b>"+label+"</b>"
                 if(func != ""){
-                    metLabel += "<b>("+func+")</b>" 
+                    metLabel += "<b> ("+func+")</b>" 
                 }
                 btn.html(metLabel)
             }
@@ -357,7 +360,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
             confirm: function () {
                 var field = this.$b.find("#metric").val()
                 var histgrm = "$"+this.$b.find("#func").val()
-                var fieldLabel= this.$b.find("#metric option:selected").text()
+                var label = this.$b.find("#metric option:selected").text()
                 var args = this.$b.find("#args").val()
                 //Save the values
                     v_pickersValues[btnAccessor] = {
@@ -365,7 +368,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                         sort: field,
                         func: histgrm,
                         mfunc: undefined,
-                        label: fieldLabel,
+                        label: label,
                         args: parseInt(args),
                         dir: "desc",
                         limit: 10000,
@@ -375,7 +378,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 //Set the metric
                 setDimension(btnAccessor)
                 //Update the button text with the selected metric
-                label = "Histogram: <b>"+field+"</b>"
+                label = "Histogram: <b>"+label+"</b>"
                 btn.html(label)
 
             }
@@ -413,7 +416,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 //Set the metric
                 setMetric(btnAccessor)
                 //Update the button text with amount of selected metrics
-                metLabel = btnAccessor+": <b>("+values.length.toString()+" selected)</b>"
+                metLabel = btnAccessor+": <b> ("+values.length.toString()+" selected)</b>"
                 btn.html(metLabel)
             }
         })
