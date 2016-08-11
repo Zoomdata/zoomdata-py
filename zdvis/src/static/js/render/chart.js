@@ -3,6 +3,7 @@ require.config({
         "jquery": "https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
         "ZoomdataSDK": "https://pubsdk.zoomdata.com:8443/zoomdata/sdk/2.0/zoomdata-client.min",
         "jQueryConfirm": "https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/2.5.1/jquery-confirm.min",
+        "lodash":"https://cdn.jsdelivr.net/lodash/4.14.1/lodash.min",
         "bootstrap": "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min"
     },
    shim:{
@@ -14,7 +15,7 @@ require.config({
        }
    }
 });
-require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(ZoomdataSDK, jquery, jQueryConfirm, bootstrap) {
+require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], function(ZoomdataSDK, jquery, jQueryConfirm, lodash, bootstrap) {
     //Tools functions declared in js/tools.js
     //Variables declared in the caller function
     _INITIAL_VARS_
@@ -62,6 +63,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
     //This is to validate correct pickers field names/labels specified by the user in graph()
     var metricFields = {fields:[], labels:[]}
     var dimensionFields = {fields:[], labels:[]}
+    var fusionFields = false
 
     //Start the visualization
     ZoomdataSDK.createClient({
@@ -107,6 +109,24 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 metOpt += buildHTML("option", volumeLabel, {value:"count"})
             var trendOpt = buildHTML("option","Select attribute ", {value:""})
 
+            //Check for fusion sources and get the fused attributes
+            fusedAttrs = window.viz.source.fusedAttributes
+            if(fusedAttrs){
+                forms = function(c){
+                    fields = _.map(c.forms, "form")
+                    labels = _.map(c.forms, "label")
+                    return {name:c.name, label: c.label, fields: fields, labels: labels}
+                }
+                fusionFields = _.map(fusedAttrs, forms)
+
+                //Add the fusion fields to the picker 
+                _.map(fusionFields,function(f){
+                    for(i in f.fields){
+                        dimOpt += buildHTML("option", f.label+":"+f.labels[i], {value: f.fields[i]})
+                    }
+                })
+            }
+
             var multiMetricTable = []
             checkbox = buildHTML("input", "", {value: "count", type:"checkbox", id: "count", name:"multi-metrics"})
             label = buildHTML("label", volumeLabel, {for: "count"})
@@ -139,6 +159,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                     }
                 }
             });
+
             dimensionSelect = buildHTML("select", dimOpt, {id: "dimension", class:"pickers"})
             trendSelect  = buildHTML("select", trendOpt, {id: "dimension", class:"pickers"})
             metricSelect = buildHTML("select", metOpt, {id: "metric", class:"pickers"})
@@ -159,13 +180,15 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                     text = acc
                     vals = v_pickersValues[acc]
                     if (vals.type == "ATTRIBUTE" || vals.type == "TIME") {
-                        label = dimensionFields.labels[dimensionFields.fields.indexOf(vals.field)]
+                        label = dimensionFields.labels[dimensionFields.fields.indexOf(vals.name)]
+                        //If no attr label found is a fusion source
+                        if(label == undefined) label = getFusionLabel(vals.form)
                         text = acc + ": <b>" + label + "</b>"
                         if (vals.func != null && !v_isHistogram) text += "<b> (" + vals.func + ")</b>"
                         pickers += "<button id=\"" + id + "\" class=\"btn-dimension btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                         pickers += "&nbsp;"
                     } else {
-                        label = (vals.met == "count") ? volumeLabel : metricFields.labels[metricFields.fields.indexOf(vals.met)]
+                        label = (vals.name == "count") ? volumeLabel : metricFields.labels[metricFields.fields.indexOf(vals.name)]
                         if (!v_isHistogram){
                             if (vals.length == undefined) {
                                 text = acc + ": <b>" + label + "</b>"
@@ -182,6 +205,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                             }
                         }
                         else{ //A histogram bar
+                                label = metricFields.labels[metricFields.fields.indexOf(vals.name)]
                                 text = "Histogram: <b>" + label + "</b>"
                                 pickers += "<button id=\"" + id + "\" class=\"btn-histogram btnp\" data-name=\"" + acc + "\">" + text + "</button>"
                                 pickers += "&nbsp;"
@@ -208,8 +232,12 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         var type = v_pickersValues[btnAccessor].type 
 
         //Place in the sort by select, the selected dimension
-        dim = v_pickersValues[btnAccessor].field
+        dim = v_pickersValues[btnAccessor].name
         label = dimensionFields.labels[dimensionFields.fields.indexOf(dim)]
+        //If no attr label found (due to this.false) then is a fusion source
+        if(label == undefined){
+            label = v_pickersValues[btnAccessor].label
+        } 
         find = "</option></select>"
         selDimOpt = buildHTML("option", label , { value: dim })
         selDimOpt = "</option>" + selDimOpt + "</select>"
@@ -264,7 +292,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 var label = this.$b.find("#dimension option:selected").text()
                 //Save the values
                 v_pickersValues[btnAccessor] = {
-                    field: field,
+                    name: field,
                     func: time,
                     sort: sortby,
                     mfunc: metFunc,
@@ -272,7 +300,19 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                     limit: parseInt(limit),
                     type: type
                 }
-                //If selected sortby is the attribute, func must be null
+                //Check if is a fusion attribute the value is not in the fields names (this.visible == false)
+                if(dimensionFields.fields.indexOf(field) == -1)
+                {
+                   //Search the fuse attr (Label:Form)
+                   args = label.split(":")
+                   grp = _(window.viz.source.fusedAttributes).filter({"label":args[0]}).value()[0]
+                   //Fill the picker value
+                   v_pickersValues[btnAccessor].form = field
+                   v_pickersValues[btnAccessor].name = grp.name
+                   v_pickersValues[btnAccessor].forms = grp.forms
+                   v_pickersValues[btnAccessor].label = args[0]
+                }
+                //If selected sortby is the attribute name, func must be null
                 if(metricFields.fields.indexOf(sortby) == -1){
                     v_pickersValues[btnAccessor].mfunc = undefined
                 }
@@ -294,7 +334,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
         var btnAccessor = btn.attr("data-name")
         var newFuncSelect = funcSelect
         //Set the func select as disabled if sort is count
-        if(v_pickersValues[btnAccessor].met == "count"){
+        if(v_pickersValues[btnAccessor].name == "count"){
             find = "id= \"func\""
             rep = find + " disabled"
             newFuncSelect = funcSelect.replace(find, rep)
@@ -317,7 +357,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 func = (met == "count") ? "" : func
                 //Save the values
                 v_pickersValues[btnAccessor] = {
-                    met: met,
+                    name: met,
                     func: func,
                     type: type
                 }
@@ -407,7 +447,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
                 for(pos in values){
                     v = values[pos]
                     v_pickersValues[btnAccessor].push({
-                        met: v,
+                        name: v,
                         label: this.$b.find("label[for=\""+v+"\"]").text(),
                         func: this.$b.find("select#"+v).val()
                     })
@@ -451,17 +491,25 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "bootstrap"], function(Zoomdat
        if($("select#metric option").length != metricFields.fields.length ){
           $("select#metric").find("option:last").remove();
        }
-       $("select#metric").append($("<option>", {
-          value: $( "select#dimension option:selected" ).val(),
-          text: $( "select#dimension option:selected" ).text(),
-       }));
+        text = $("select#dimension option:selected").text()
+        value = $( "select#dimension option:selected" ).val()
+        //Validate multimetric fields    
+        if(text.indexOf(":") > -1){ 
+            text = text.split(":")[0] 
+            value = _(fusionFields).filter({"label":text}).value()[0].name
+        }
+       $("select#metric").append($("<option>", { value:value, text: text }));
        if($("select#dimension option:selected").text() != $( "select#metric option:selected" ).text()){
           $("select#func").prop("disabled", false);
        }
    })
 
     $("body").on("change", "select#metric", function() {
-       if($("select#dimension option:selected").text() == $( "select#metric option:selected" ).text()){
+        text = $("select#dimension option:selected").text()
+        if(text.indexOf(":") > -1){ 
+            text = text.split(":")[0] 
+        }
+        if (text == $("select#metric option:selected").text()) {
           $("select#func").prop("disabled", "disabled");
           $("select#sort option:contains(\"ASC\")").text("Alphabetical");
           $("select#sort option:contains(\"DESC\")").text("Reverse alphabetical");

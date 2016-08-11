@@ -1,13 +1,13 @@
 function setPickers(htmlStr, pickersVal) {
-    if(pickersVal.length != undefined){ //When is a multi-metric chart
-        for(pos in pickersVal){
+    if (pickersVal.length != undefined) { //When is a multi-metric chart
+        for (pos in pickersVal) {
             //Update the checkbox
-            val = pickersVal[pos].met
+            val = pickersVal[pos].name
             if (htmlStr.indexOf(val) > -1) {
                 oldStr = "value= \"" + val + "\""
                 newStr = oldStr + " checked=\"checked\""
                 htmlStr = htmlStr.replace(oldStr, newStr)
-                //Update the function select
+                    //Update the function select
                 frag = htmlStr.split(val)
                 val = pickersVal[pos].func
                 oldStr = "\"" + val + "\""
@@ -17,16 +17,28 @@ function setPickers(htmlStr, pickersVal) {
             }
         }
     }
+    fuseField = pickersVal.hasOwnProperty("form") ? true:false
     for (key in pickersVal) {
         val = pickersVal[key]
         if(typeof(val) == "string"){
             val = val.replace("$","")
         }
-        if (htmlStr.indexOf(val) > -1) {
-            //Pickers
-            oldStr = "\"" + val + "\""
-            newStr = oldStr + " selected=\"selected\">"
-            htmlStr = htmlStr.replace(oldStr + ">", newStr)
+        if(!fuseField || (fuseField && key !="name") ){
+            if (htmlStr.indexOf(val) > -1) {
+                if(key == "sort"){
+                        oldStr = "\"" + val + "\""
+                        var index = htmlStr.lastIndexOf(oldStr);
+                        newStr = oldStr + " selected=\"selected\">"
+                        sortDrop = htmlStr.substr(index);
+                        sortDrop = sortDrop.replace(oldStr + ">", newStr)
+                        htmlStr = htmlStr.substring(0, index) + sortDrop
+                }else{
+                        //Pickers
+                        oldStr = "\"" + val + "\""
+                        newStr = oldStr + " selected=\"selected\">"
+                        htmlStr = htmlStr.replace(oldStr + ">", newStr)
+                    }
+            }
         }
     }
     return htmlStr
@@ -68,17 +80,22 @@ function loadDefinitionPickers(){
                         accesor = "Trend Attribute"
                     }
                 }
+                field = groups[g].form == undefined ? groups[g].name: groups[g].form
                 pickerVals[accesor] ={
-                    field: groups[g].name,
+                    name:  groups[g].name,
                     sort:  groups[g].sort.name,
-                    func:  groups[g].func,
-                    args:  groups[g].args,
                     label: groups[g].label,
-                    mfunc: groups[g].sort.metricFunc,
                     dir:   groups[g].sort.dir,
                     limit: groups[g].limit,
                     type:  groups[g].type
                 } 
+                if(groups[g].sort.metricFunc) pickerVals[accesor].mfunc = groups[g].sort.metricFunc
+                if(groups[g].func) pickerVals[accesor].func = groups[g].func
+                if(groups[g].args) pickerVals[accesor].args = groups[g].args
+                if(groups[g].form){
+                    pickerVals[accesor].form = groups[g].form
+                    pickerVals[accesor].forms = groups[g].forms
+                }
             }
         }
     }
@@ -91,7 +108,7 @@ function loadDefinitionPickers(){
             m = (m != null ) ? m: met[i][acc].getMetrics()
             if(m.length == undefined ){ //Is only one metric
                 pickerVals[acc] = {
-                    met: m.name,
+                    name: m.name,
                     type: m.type,
                     func: m.func,
                     label: m.label
@@ -153,47 +170,47 @@ function loadUserPickers(){
     mgroupRegex = /Group [1-9]/g
     for (acc in v_pickersValues){
         if(acc == "Group By"){
-            v_pickersValues[acc].field = getValue(v_pickersValues[acc].field, v_defPicker.field)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name, v_defPicker.field)
             if(v_defPicker.limit) v_pickersValues[acc].limit = v_defPicker.limit
             setDimension(acc)
         }
         else if(acc.match(mgroupRegex)){
-            v_pickersValues[acc].field = getValue(v_pickersValues[acc].field, v_defPicker.field, acc)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name , v_defPicker.field, acc)
             if(v_defPicker.limit) v_pickersValues[acc].limit = v_defPicker.limit
             setDimension(acc)
         }
         else if(acc == "Trend Attribute"){
-            v_pickersValues[acc].field = getValue(v_pickersValues[acc].field, v_defPicker.trend)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name, v_defPicker.trend)
             if(v_defPicker.time) v_pickersValues[acc].func = v_defPicker.time
             setDimension(acc)
         }
         else if(acc == "Metric"){
-            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.metric)
+            v_pickersValues[acc].name= getValue(v_pickersValues[acc].name, v_defPicker.metric)
             if(v_defPicker.func) v_pickersValues[acc].func = v_defPicker.func
             setMetric(acc)
         }
         else if(acc == "Size"){
-            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.metric)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name, v_defPicker.metric)
             if(v_defPicker.func) v_pickersValues[acc].func = v_defPicker.func
             setMetric(acc)
         }
         else if(acc == "Y Axis"){
-            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.y)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name, v_defPicker.y)
             if(v_defPicker.yop) v_pickersValues[acc].func = v_defPicker.yop
             setMetric(acc)
         }
         else if(acc == "X Axis"){
-            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.x)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name, v_defPicker.x)
             if(v_defPicker.xop) v_pickersValues[acc].func = v_defPicker.xop
             setMetric(acc)
         }
         else if(acc == "Y1 Axis"){
-            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.y1)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name, v_defPicker.y1)
             if(v_defPicker.y1op) v_pickersValues[acc].func = v_defPicker.y1op
             setMetric(acc)
         }
         else if(acc == "Y2 Axis"){
-            v_pickersValues[acc].met = getValue(v_pickersValues[acc].met, v_defPicker.y2)
+            v_pickersValues[acc].name = getValue(v_pickersValues[acc].name, v_defPicker.y2)
             if(v_defPicker.y2op) v_pickersValues[acc].func = v_defPicker.y2op
             setMetric(acc)
         }
@@ -234,7 +251,8 @@ function getDimensionGroup(accessor){
     if( val.type == "TIME" || val.type == "ATTRIBUTE" || 
       ( (val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY") && v_isHistogram ) ){
         group = {
-            "name": val.field,
+            "name": val.name,
+            "label": val.label,
             "sort": {
                 "name": val.sort,
                 "dir": val.dir,
@@ -255,10 +273,15 @@ function getDimensionGroup(accessor){
             group.func = val.func
             group.args = val.args
         }
+        if(val.form){
+            group.form = val.form
+            group.forms = val.forms
+        }
         return group
     }
     return false
 }
+
 
 function setDimension(accessorName){
     multiGroup = "Multi Group By";
@@ -285,7 +308,7 @@ function getMetricGroup(accessor){
     if(val.length == undefined){
         if(val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY"){
             metric = { 
-                      "name": val.met, 
+                      "name": val.name, 
                       "func": val.func, 
                       "label": val.label, 
                     }
@@ -299,7 +322,7 @@ function getMetricGroup(accessor){
         metrics = []
         for(pos in val) {
             metrics.push({ 
-                      "name": val[pos].met, 
+                      "name": val[pos].name, 
                       "func": val[pos].func, 
                       "label": val[pos].label, 
                 })
@@ -322,3 +345,11 @@ function setMetric(accessorName) {
         accessor.resetMetrics(metric)
     }
 }
+
+function getFusionLabel(field){
+    //Returns the fusion field label: ie Event:ID or Event:Name
+    label = _(fusionFields).filter(f => f.fields.indexOf(field) > -1).map(f => f.label).value()[0]
+    obj = _(fusionFields).filter({"label":label}).value()[0]
+    return label +":"+obj.labels[obj.fields.indexOf(field)]
+}
+
