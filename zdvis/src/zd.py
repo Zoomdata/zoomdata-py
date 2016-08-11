@@ -694,7 +694,12 @@ class ZDVisualization(object):
                 if visual: 
                     dfParsed = []
                     columns = []
-                    fields = [f['name'] for f in config['fields']]
+                    fields = []
+                    for f in config['fields']:
+                        if f.get('form',False):
+                            fields.append(f['form']) #Fusion sources should be based on the form attr
+                        else:
+                            fields.append(f['name'])
                     opKeys = ['sum','avg','max','min']
                     attrName = 'category'
                     for obj in dataframe:
