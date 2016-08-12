@@ -1,7 +1,7 @@
 require.config({
     paths: {
         "jquery": "https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min",
-        "ZoomdataSDK": "https://pubsdk.zoomdata.com:8443/zoomdata/sdk/2.0/zoomdata-client.min",
+        "ZoomdataSDK": "https://sdk.zoomdata.com:8443/zoomdata/sdk/zoomdata-client.min",
         "jQueryConfirm": "https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/2.5.1/jquery-confirm.min",
         "lodash":"https://cdn.jsdelivr.net/lodash/4.14.1/lodash.min",
         "bootstrap": "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min"

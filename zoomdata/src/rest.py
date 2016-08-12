@@ -156,7 +156,7 @@ class RestCalls(object):
         return False
 
     def getSourceID(self, url, headers, sourceName, printError = True, token = False):
-        # https://pubsdk.zoomdata.com:8443/zoomdata/service/sources?fields=name&access_token=
+        # https://sdk.zoomdata.com:8443/zoomdata/service/sources?fields=name&access_token=
         service = '/service/sources?fields=name'
         if token:
             service += '&access_token='+ token
@@ -186,7 +186,7 @@ class RestCalls(object):
             service = '/api/accounts/'+accountId+'/sources/file'
             body = {'name': sourceName, 'sourceParameters':{}}
             #Create the source
-            #https://pubsdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/file
+            #https://sdk.zoomdata.com:8443/zoomdata/api/accounts/56e9669ae4b03818a87e452c/sources/file
             try:
                 r = http.request('POST', url+service, headers=headers, body=json.dumps(body))
             except MaxRetryError:

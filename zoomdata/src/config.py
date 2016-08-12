@@ -1,18 +1,18 @@
 #========== MAIN CONFIGURATION ======================
 chart = 'Bars'
 paths = {
-          'ZoomdataSDK':'https://pubsdk.zoomdata.com:8443/zoomdata/sdk/2.0/zoomdata-client.min',
+          'ZoomdataSDK':'https://sdk.zoomdata.com:8443/zoomdata/sdk/2.0/zoomdata-client.min',
           'jquery': 'https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min'
 }
 config = {
         # Main App configurations
-        'host': 'pubsdk.zoomdata.com', 
+        'host': 'sdk.zoomdata.com', 
         'port': 8443,
         'path': '/zoomdata',
         'secure': True,
         "headers":{'Content-Type': 'application/vnd.zoomdata.v1+json', 'Authorization': False},
         # Mongo DB parameters
-        'mongoServer': 'pubsdk.zoomdata.com', 
+        'mongoServer': 'sdk.zoomdata.com', 
         'mongoPort': 27017,
         'mongoSchema': 'zoom',
     }
