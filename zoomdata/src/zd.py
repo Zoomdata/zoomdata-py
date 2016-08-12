@@ -25,12 +25,11 @@ js = JSBuilder()
 def data(resp):
     return resp.data.decode('ascii')
 
-class ZDVisualization(object):
+class Zoomdata(object):
 
-    """ ZDVisualization puts together all the javascript pieces
-    needed to create a connection with the ZD SDK and fecth 
-    the requested data. It finally renders the html and js into
-    the notebook output dom through the HTML object """
+    """ Works as an API connector with Zoomdata services and SDK
+    allowing to bring visualizations, work with sources, fetch and send data..
+    """
 
     def __init__(self):
         """ To ensure maximum flexibility for the visualization configuration

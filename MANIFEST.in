@@ -1,4 +1,4 @@
-include zdvis/src/static/js/tools.js
-include zdvis/src/static/js/render/*.js
-include zdvis/src/static/js/visdef/*.json
-include zdvis/src/static/css/style.css
+include zoomdata/src/static/js/tools.js
+include zoomdata/src/static/js/render/*.js
+include zoomdata/src/static/js/visdef/*.json
+include zoomdata/src/static/css/style.css

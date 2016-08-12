@@ -1,30 +1,30 @@
-# Jupyter - ZDvis
+# Jupyter - Zoomdata
 
-ZDVIS is a python3 module that puts the power of Zoomdata straight into your Jupyter notebooks (http://jupyter.org).  For example, users can register pandas dataframes as Zoomdata sources, easily render many types of visualizations, and create pandas dataframes from any Zoomdata source. It supports Zoomdata v2.2.
+This is python3 module that puts the power of Zoomdata straight into your Jupyter notebooks (http://jupyter.org).  For example, users can register pandas dataframes as Zoomdata sources, easily render many types of visualizations, and create pandas dataframes from any Zoomdata source. It supports Zoomdata v2.2.
 
 ## Python dependencies
 
-The following python modules are required to use ZDvis: urllib3, json, base64, websockets.
+The following python modules are required: urllib3, json, base64, websockets.
 
 ## Installation
 Clone this repo or download it and install it as a normal python3 module
 ```
-git clone https://github.com/Zoomdata/ZDvis
-cd zdvis
+git clone https://github.com/Zoomdata/zoomdata-py
+cd zoomdata-py
 sudo python3 setup.py install
 ```
 Then start your jupyter server
 
 ## Usage
 
-The entire functionality of the Zdvis module comes from the ZD object which is the main interface for every supported Zoomdata services within this module. In order to be able to use the ZD methods, you must authenticate first using one of the following ways:
+The entire functionality of the module comes from the ZD object which is the main interface for every supported Zoomdata services within this module. In order to be able to use the ZD methods, you must authenticate first using one of the following ways:
 
 ##### 1. Basic auth
 
 This type of authentication is useful mainly when you want to use the ZD module in your local Jupyter server. First you need to import from the module the ZD object into your notebook as any other python module and then specify some valid zoomdata credentials (for testing you may use zoomdata:zoomdata) using the auth() method from the ZD object.
 
 ```
-from zdvis import ZD
+from zoomdata import ZD
 ZD.auth("zoomdataserver","username", "password")
 ```
 
@@ -42,7 +42,7 @@ This type of authentication is mainly focused on a multi-user environment using 
 
 Please refer to the projects pages for more information on how to deploy the integration.
 
-##### Note about using ZDvis with Zoomdata Oauth2
+##### Note about integration with Zoomdata Oauth2
 
 As oauth is token based and the token has an expiration time, users may need to log out from the jupyterhub session (same that Zoomdata session) and log back in after some period of inactivity to get a new token.  It's very important to note that this only affects the jupyterhub session. In order to also affect the notebook you were working on, you must shutdown this notebook by checking the notebook (it should be in green) and then clicking the 'shutdown' button on the menu bar. This will restart the notebook (your code won't be lost) and once you open it again, it will be aware of the new token.
 
