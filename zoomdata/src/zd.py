@@ -104,17 +104,18 @@ class Zoomdata(object):
     def _oauth(self, user):
         # Ideally this should go within data_handler
         self._user = user
-        datafile = open(USERDATA_FILE, 'rb')
-        data = pickle.load(datafile)
-        userdata = data.get(user, False)
-        datafile.close()
-        if userdata:
-            self._account = userdata['accountId']
-            self._token = userdata['token']
-            key = "Bearer {}".format(userdata['token'])
-            self._connReq['mongo']['created']['by']['username'] = user
-            self._sourceReq['created']['by']['username'] = user
-            self._conf['headers']['Authorization'] = key
+        if(os.path.exists(USERDATA_FILE)):
+            datafile = open(USERDATA_FILE, 'rb')
+            data = pickle.load(datafile)
+            userdata = data.get(user, False)
+            datafile.close()
+            if userdata:
+                self._account = userdata['accountId']
+                self._token = userdata['token']
+                key = "Bearer {}".format(userdata['token'])
+                self._connReq['mongo']['created']['by']['username'] = user
+                self._sourceReq['created']['by']['username'] = user
+                self._conf['headers']['Authorization'] = key
 
     def register(self, sourceName, dataframe): 
         """Creates a new Zoomdata source or updates an existing one. If the source exists all data will be
