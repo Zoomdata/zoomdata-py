@@ -1,6 +1,6 @@
 # Jupyter - Zoomdata
 
-This is python3 module that puts the power of Zoomdata straight into your Jupyter notebooks (http://jupyter.org).  For example, users can register pandas dataframes as Zoomdata sources, easily render many types of visualizations, and create pandas dataframes from any Zoomdata source. It supports Zoomdata v2.2.
+This is python3 module that puts the power of Zoomdata straight into your Jupyter notebooks (http://jupyter.org).  For example, users can register pandas dataframes as Zoomdata sources, easily render many types of visualizations, and create pandas dataframes from any Zoomdata source.  The master branch (under development) works with Zoomdata v2.3.  Branch 2.2 works with Zoomdata v2.2.
 
 ## Python dependencies
 
