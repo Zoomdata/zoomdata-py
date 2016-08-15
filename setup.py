@@ -24,6 +24,6 @@ setup(
         keywords=['aktiun','zoomdata','jupyter','jupyterhub','zoomdata-py'],
         author_email = 'eduardo@aktiun.com',
         url = 'https://github.com/Zoomdata/zoomdata-py',
-        description = 'Integrates Zoomdata visualizations into Jupyter notebooks',
+        description = 'Integrates Zoomdata with Jupyter notebooks',
         include_package_data=True,
         )
