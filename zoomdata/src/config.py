@@ -15,7 +15,7 @@
 # ===================================================================
 
 config = {
-        'host': 'sdk.zoomdata.com', 
+        'host': 'pubsdk.zoomdata.com', 
         'port': 8443,
         'path': '/zoomdata',
         'secure': True,
