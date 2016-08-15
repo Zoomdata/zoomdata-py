@@ -79,30 +79,22 @@ class Zoomdata(object):
 
         # Visualization attrs
         self._source = ''
-        self._chart = chart
-        self._renderCount = 0 #To render a different chart each time. (jquery element)
+        self._chart = 'Bars' # A common default visualization
+        self._renderCount = 0 # To render a different chart each time. (jquery element)
         self._credentials = ''  # This is the key to get the source key to get the visualization
         self._source_id = '' # This is the source id to get the source definition
         self._source_charts = [] # Active visualizations for the current source
         self._allowed_visuals = [] # All the visualizations names allowed by zoomdata
-        self._variables = {} #This is a default configuration used to render a visualization. Usually extracted from the vis definition
+        self._variables = {} # This is a default configuration used to render a visualization. Usually extracted from the vis definition
         self._filters = [] # This filters are usually extracted from the vis definition.
         self._timeFilter = {} # Time filter. Usually extracted from the vis definition (Provided by the timebar)
         self._graphFilters = [] # Filters defined by the user to narrow visualization results in graph() 
         self._pickers = {} # Default pickers values for the visualization
-        self._paths = paths
-        self._query = queryConfig
-
-        #Attrs for new source/collection creation. Possible to be removed
-        self._connReq = connReq
-        self._sourceReq = sourceReq
 
     def auth(self, server, user, password):
         cred = user+':'+password
         key = base64.b64encode(cred.encode('ascii'))
         key = 'Basic ' + key.decode('ascii')
-        self._connReq['mongo']['created']['by']['username'] = user
-        self._sourceReq['created']['by']['username'] = user
         self._conf['headers']['Authorization'] = key
         # Get the account
         if server:
@@ -127,8 +119,6 @@ class Zoomdata(object):
                 self._account = userdata['accountId']
                 self._token = userdata['token']
                 key = "Bearer {}".format(userdata['token'])
-                self._connReq['mongo']['created']['by']['username'] = user
-                self._sourceReq['created']['by']['username'] = user
                 self._conf['headers']['Authorization'] = key
 
     def register(self, sourceName, dataframe): 
@@ -210,12 +200,10 @@ class Zoomdata(object):
         params = { 'conf': self._conf,
                    'credentials': self._credentials,
                    'token': self._token,
-                   'paths': self._paths,
                    'width': self._width,
                    'height': self._height,
                    'source': self._source,
                    'chart': self._chart,
-                   'query': self._query,
                    'time': time,
                    'colors': colors,
                    'filters': self._filters,
