@@ -19,7 +19,7 @@ setup(
         name = 'zoomdata',
         version = '0.1',
         packages = find_packages(),
-        install_requires=[ 'pandas', 'urllib3', 'websockets'],
+        install_requires=[ 'pandas', 'urllib3', 'websocket-client'],
         author = 'Aktiun',
         keywords=['aktiun','zoomdata','jupyter','jupyterhub','zoomdata-py'],
         author_email = 'eduardo@aktiun.com',
