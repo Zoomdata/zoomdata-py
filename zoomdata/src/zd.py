@@ -658,21 +658,21 @@ class Zoomdata(object):
             socketUrl = self._serverURL + "/websocket?key=" + credentials
             socketUrl = socketUrl.replace('https','wss')
             ws = create_connection(socketUrl)
-            rows = rows if rows < 1000000 else 1000000
-            request = { "type": "START_VIS",
-                        "cid": "f3020fa6e9339ee5829f6e2caa8d2e40",
-                        "request": {
-                               "streamSourceId": source_id,
-                               "cfg": {},
-                            }
-                     }
+            request = {
+                         "api": "VIS",
+                         "cid": "f3020fa6e9339ee5829f6e2caa8d2e40",
+                         "type": "START_VIS",
+                         "sourceId": source_id,
+                         "limit": rows,
+                         "filters": filters,
+            }
             if time:
-                request['request'].update({'time':time})
+                request.update({'time':time})
             if not visual:
-                cfg = {'tz':'EST', 'fields':fields, 'limit':rows, 'filters':filters}
+                upd = {'fields':fields, 'limit':rows, "aggregate": False } 
             else:
-                cfg = {"filters":filters, "group": config}
-            request['request']['cfg'] = cfg
+                upd = {"filters":filters, "dimensions": config, "metrics": config}
+            request.update(upd)
             ws.send(js.s(request))
             req_done = False
             dataframe = []
