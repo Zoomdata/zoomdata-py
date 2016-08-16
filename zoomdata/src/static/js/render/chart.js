@@ -74,8 +74,8 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
     timeSelect = buildHTML("select", timeOpt , {id: "time", class:"pickers"})
 
     //This is to validate correct pickers field names/labels specified by the user in graph()
-    var metricFields = {fields:[], labels:[]}
-    var dimensionFields = {fields:[], labels:[]}
+    var metricFields = {fields:[], labels:[], types:[]}
+    var dimensionFields = {fields:[], labels:[], types:[]}
     var fusionFields = false
 
     //Start the visualization
@@ -152,6 +152,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                         //Save the metric field and label
                         metricFields.fields.push(this.name)
                         metricFields.labels.push(this.label)
+                        metricFields.types.push(this.type)
                         //Create the select
                         metOpt += buildHTML("option", this.label, {value: this.name})
                         //Multiple-metrics
@@ -163,11 +164,13 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                     else if (this.type == "ATTRIBUTE") {
                         dimensionFields.fields.push(this.name)
                         dimensionFields.labels.push(this.label)
+                        dimensionFields.types.push(this.type)
                         dimOpt += buildHTML("option", this.label, {value: this.name})
                     }
                     else if (this.type == "TIME") {
                         dimensionFields.fields.push(this.name)
                         dimensionFields.labels.push(this.label)
+                        dimensionFields.types.push(this.type)
                         trendOpt += buildHTML("option", this.label, {value: this.name})
                     }
                 }
@@ -242,11 +245,10 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
         var limitInput = buildHTML("input","",{ id:"limit", 
                                                 value: v_pickersValues[btnAccessor].limit, 
                                                 class:"value-input"})
-        var type = v_pickersValues[btnAccessor].type 
-
         //Place in the sort by select, the selected dimension
         dim = v_pickersValues[btnAccessor].name
         label = dimensionFields.labels[dimensionFields.fields.indexOf(dim)]
+        var type = dimensionFields.types[dimensionFields.fields.indexOf(dim)]
         //If no attr label found (due to this.false) then is a fusion source
         if(label == undefined){
             label = v_pickersValues[btnAccessor].label
@@ -355,7 +357,8 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
         table = [["Metric",metricSelect],["Operator", newFuncSelect ]]
         //var content = multiMetric
         var content = makeTable(table,{class: "pickers"})
-        var type = v_pickersValues[btnAccessor].type 
+        met = v_pickersValues[btnAccessor].name
+        var type = metricFields.types[metricFields.fields.indexOf(met)]
         content = setPickers(content ,v_pickersValues[btnAccessor])
         $.confirm({
             title: btnAccessor,

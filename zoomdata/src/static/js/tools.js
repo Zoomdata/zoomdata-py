@@ -319,27 +319,19 @@ function setDimension(accessorName){
 
 function getMetricGroup(accessor){
     val = v_pickersValues[accessor]
-    if(val.length == undefined){
-        if(val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY"){
-            metric = { 
-                      "name": val.name, 
-                      "func": val.func, 
-                      "label": val.label, 
-                    }
-            if(val.met == "count"){
-                metric.func = ""
-            } 
-            return metric 
+    if (val.name == "count")  return {"name":val.name}
+    if (val.length == undefined) {
+        if (val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY") {
+            return { "name": val.name, "func": val.func, "label": val.label }
         }
-    }
-    else{
+    } else {
         metrics = []
-        for(pos in val) {
-            metrics.push({ 
-                      "name": val[pos].name, 
-                      "func": val[pos].func, 
-                      "label": val[pos].label, 
-                })
+        for (pos in val) {
+            metrics.push({
+                "name": val[pos].name,
+                "func": val[pos].func,
+                "label": val[pos].label,
+            })
         }
         return metrics
     }
