@@ -319,7 +319,7 @@ function setDimension(accessorName){
 
 function getMetricGroup(accessor){
     val = v_pickersValues[accessor]
-    if (val.name == "count")  return {"name":val.name}
+    if (val.name == "count")  return {"name":val.name, "label":volumeLabel}
     if (val.length == undefined) {
         if (val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY") {
             return { "name": val.name, "func": val.func, "label": val.label }

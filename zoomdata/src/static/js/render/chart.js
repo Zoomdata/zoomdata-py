@@ -306,6 +306,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                 var limit = this.$b.find("#limit").val()
                 var label = this.$b.find("#dimension option:selected").text()
                 //Save the values
+                type = dimensionFields.types[dimensionFields.fields.indexOf(field)]
                 v_pickersValues[btnAccessor] = {
                     name: field,
                     func: time,
@@ -357,8 +358,6 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
         table = [["Metric",metricSelect],["Operator", newFuncSelect ]]
         //var content = multiMetric
         var content = makeTable(table,{class: "pickers"})
-        met = v_pickersValues[btnAccessor].name
-        var type = metricFields.types[metricFields.fields.indexOf(met)]
         content = setPickers(content ,v_pickersValues[btnAccessor])
         $.confirm({
             title: btnAccessor,
@@ -372,6 +371,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                 var label = this.$b.find("#metric option:selected").text()
                 func = (met == "count") ? "" : func
                 //Save the values
+                type = metricFields.types[metricFields.fields.indexOf(met)]
                 v_pickersValues[btnAccessor] = {
                     name: met,
                     func: func,
@@ -418,6 +418,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                 var histgrm = "$"+this.$b.find("#func").val()
                 var label = this.$b.find("#metric option:selected").text()
                 var args = this.$b.find("#args").val()
+                type = metricFields.types[metricFields.fields.indexOf(field)]
                 //Save the values
                     v_pickersValues[btnAccessor] = {
                         field: field,
@@ -462,10 +463,12 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                 v_pickersValues[btnAccessor] = []
                 for(pos in values){
                     v = values[pos]
+                    type = metricFields.types[metricFields.fields.indexOf(v)]
                     v_pickersValues[btnAccessor].push({
                         name: v,
                         label: this.$b.find("label[for=\""+v+"\"]").text(),
-                        func: this.$b.find("select#"+v).val()
+                        func: this.$b.find("select#"+v).val(),
+                        type: type
                     })
                 }
                 console.log(v_pickersValues)

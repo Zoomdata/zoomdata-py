@@ -41,7 +41,7 @@ class Template(object):
         self.scriptTags = '<script type="text/javascript">%s</script>' 
 
         # Div where the chart is rendered (by echartjs)
-        self.divChart = '<div id="%s" class="zd chart" style="width:%spx; height:%spx; top:20%%"></div>'
+        self.divChart = '<div id="%s" class="zd medium" style="width:%spx; height:%spx; top:20%%"></div>'
 
         # Container div for the filters (metric, dimension) drop-downs
         self.divFilters = '<div id="pickers" style="display:inline-block;margin-top:5px" align="center"></div>' 
