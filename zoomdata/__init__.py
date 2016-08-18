@@ -16,3 +16,4 @@
 # ===================================================================
 from .main import ZD
 from .data_handler import *
+from .src.datatypes import Attribute, Metric, Filter, TimeFilter
