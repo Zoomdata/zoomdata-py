@@ -14,3 +14,4 @@
 #  
 # ===================================================================
 from .zd import Zoomdata
+from .datatypes import Attribute, Metric, Filter, TimeFilter
