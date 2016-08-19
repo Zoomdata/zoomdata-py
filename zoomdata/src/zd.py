@@ -21,6 +21,7 @@ import pickle
 import pandas as pd
 from time import sleep
 from .rest import RestCalls
+from .source import Source
 from .visdefinition import VisDefinition
 from .visrender import VisRender
 from .config import *
@@ -541,7 +542,17 @@ class Zoomdata(object):
             if vis:
                 self._source_charts = [v['name'] for v in vis['visualizations']]
                 self.__updateSourceFile()
-                return True
+
+                # This is for the new syntax
+                data = {
+                        'source_name': nsource,
+                        'source_id': source_id,
+                        'source_key': credentials,
+                        'headers': self._conf['headers'],
+                        'url': self._serverURL,
+                        }
+                return Source(data)
+
             else: # If not vis it means that source was deleted from zoomdata
                 self._source_credentials.pop(nsource)
                 self.__updateSourceFile()
@@ -579,7 +590,7 @@ class Zoomdata(object):
         return self.getRawData(source, fields=fields, rows=1, filters=filters, time=time)
 
 
-    def getRawData(self, source, fields=[], rows=10000, filters=[], time={}):
+    def getRawData(self, source, fields=[], rows=10000, filters=[], exclude=[], time={}):
         """
         Returns the raw data from the specified source as a pandas dataframe object.
         Parameters:
@@ -589,11 +600,12 @@ class Zoomdata(object):
             - filters: List of dicts (optional). A list of filters for the raw data. Ex:
                 filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
                 If ZD._filters is defined it will affect this method. If the filters parameter is specified it will used instad of ZD._filters, 
+            -exclude: List (optional). A list with the name of fields to exclude. The fetched data will include all source fields or those specified by field parameter and will exclude those specified by this parameter.
             -time: Dict(optional). Time range for a time field if the source have any. Ex:
                 time = { 'timeField': 'timefield', 'from': '+2008-01-01 01:00:00.000', 'to': '+2008-12-31 12:58:00.000'}
                 If ZD._timeFilter is defined it will affect this method. If a time parameter is specified it will used instad of ZD._timeFilter, 
         """
-        return self.__getWebsocketData(source, fields=fields, rows=rows, filters=filters, time=time)
+        return self.__getWebsocketData(source, fields=fields, exclude=exclude, rows=rows, filters=filters, time=time)
 
     def getData(self, source, conf, filters=[], time={}):
         """
@@ -614,7 +626,7 @@ class Zoomdata(object):
             return False
         return self.__getWebsocketData(source, visual=True, config=conf, filters=filters, time=time)
 
-    def __getWebsocketData(self, source, visual=False, fields=[], rows=10000, config={}, filters=[], time={}):
+    def __getWebsocketData(self, source, visual=False, fields=[], exclude=[], rows=10000, config={}, filters=[], time={}):
         time = time or self._timeFilter
         filters = filters or self._filters
         #Check if the source is still available in zoomdata and get the id
@@ -654,6 +666,8 @@ class Zoomdata(object):
                     fields = [f['name'] for f in vis['objectFields']]
                 else:    
                     return False
+            # Exclude fields:
+            [fields.remove(f) for f in exclude if f in fields]
             # Websocket request
             socketUrl = self._serverURL + "/websocket?key=" + credentials
             socketUrl = socketUrl.replace('https','wss')
@@ -668,11 +682,13 @@ class Zoomdata(object):
             }
             if time:
                 request.update({'time':time})
-            if not visual:
+            if not visual: # getRawData
                 upd = {'fields':fields, 'limit':rows, "aggregate": False } 
-            else:
-                upd = {"filters":filters, "dimensions": config, "metrics": config}
+            else:          # getData
+                upd = {"dimensions": dimensions, "metrics": metrics}
             request.update(upd)
+            print(socketUrl)
+            print(js.s(request))
             ws.send(js.s(request))
             req_done = False
             dataframe = []
@@ -682,6 +698,12 @@ class Zoomdata(object):
                 if 'NOT_DIRTY_DATA' in frame:
                     ws.close()
                     break
+                if 'INTERNAL_ERROR' in frame:
+                    ws.close()
+                    print('An error occured:')
+                    frame = json.loads(frame)
+                    print(frame['details'])
+                    return False
                 maxloop += 1
                 frame = frame.replace('false','False')
                 frame = frame.replace('null','None')
