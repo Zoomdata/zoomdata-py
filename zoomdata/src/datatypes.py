@@ -89,6 +89,7 @@ class Attribute(object):
         if self.__label:
             attr.update({'label': self.__label})
         if  self.__unit:
+            self.__sort = self.__name
             attr.update({'type': 'TIME', 'granularity':self.__unit})
         if 'ALPHAB' in self.__sortdir:
             self.__sort = self.__name
@@ -159,11 +160,33 @@ class TimeFilter(object):
     def __repr__(self):
         attr = self.getval()
         return json.dumps(attr)
+
+    def __formatdate(self, udate, to=False):
+        a = "+2008-01-10 12:58:00.000"
+        secs = ".00.000"
+        hour = {"start":"00:00:00.000", "end":"12:58:00.000"}
+        date = {"sm":"01", "em":"12", "sd": "01", "ed":"31"}
+        parts = udate.split(" ")
+        ymd = parts[0].split("-")
+        if len(ymd) == 1:
+            if not to: # Only the year was specified
+                return "+%s-%s-%s %s" % (ymd[0], date['sm'], date['sd'], hour['start'])
+            return "+%s-%s-%s %s" % (ymd[0], date['em'], date['ed'], hour['end'])
+        elif len(ymd) == 2:
+            if not to: # year-month 
+                return "+%s-%s-%s %s" % (ymd[0], ymd[1], date['sd'], hour['start'])
+            return "+%s-%s-%s %s" % (ymd[0], ymd[1], date['ed'], hour['end'])
+        elif len(ymd) == 3:
+            if not to: # year-month-day 
+                return "+%s-%s-%s %s" % (ymd[0], ymd[1], ymd[2], hour['start'])
+            return "+%s-%s-%s %s" % (ymd[0], ymd[1], ymd[2], hour['end'])
+        return udate
     
     def start(self, start):
         if not isinstance(start, str):
             print('Start date should be a string')
             return False
+        start = self.__formatdate(start)
         self.__from = start
         return self
 
@@ -171,6 +194,7 @@ class TimeFilter(object):
         if not isinstance(to, str):
             print('Stop date should be a string')
             return False
+        to = self.__formatdate(to, True)
         self.__to = to
         return self
 
