@@ -47,6 +47,7 @@ class AggregatedData(object):
         return self.execute()
 
     def groupby(self, *args):
+        if not args: return self
         attrs = args
         aggregations = []
         aggregationWindows = []
@@ -95,6 +96,7 @@ class AggregatedData(object):
         return self
 
     def metrics(self, *args):
+        if not args: return self
         mets = []
         if isinstance(args[0], list):
             args = args[0]
@@ -118,6 +120,7 @@ class AggregatedData(object):
         return self
 
     def filter(self, *args):
+        if not args: return self
         filters = args
         if isinstance(args[0], list):
             filters = args[0]
@@ -130,6 +133,7 @@ class AggregatedData(object):
         return self
 
     def time(self, time):
+        if not time: return self
         if not isinstance(time, TimeFilter):
             print("Time parameter should be TimeFilter object")
             self.__error = True
@@ -139,6 +143,10 @@ class AggregatedData(object):
 
     def execute(self):
         if self.__error:
+            self.__clear_attrs__()
+            return False
+        if not self.__dimensions:
+            print('Fields to group by (dimensions) are required for this function. Add .groupby(Field1, Field2)')
             self.__clear_attrs__()
             return False
         server_url = self.__data['url']
