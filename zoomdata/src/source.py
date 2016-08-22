@@ -17,6 +17,7 @@
 import pandas as pd
 from .functions.rawdata import RawData
 from .functions.aggregdata import AggregatedData
+from .functions.graph import Graph
 from zoomdata.src.rest import RestCalls
 rest = RestCalls()
 
@@ -29,13 +30,13 @@ class Source(object):
         self.__data = data
 
         #Methods
-        # self.graph      = Graph()
-        # self.bars       = Graph('Bars')
-        # self.donut      = Graph('Donut')
-        # self.pie        = Graph('Pie')
-        # self.kpi        = Graph('KPI')
-        # self.treemap    = Graph('Tree Map')
-        # self.heatmap    = Graph('Heat Map')
+        self.graph      = Graph(self, data,'Bars', shortcut=False)
+        self.bars       = Graph(self, data,'Bars')
+        self.donut      = Graph(self, data,'Donut')
+        self.pie        = Graph(self, data,'Pie')
+        self.kpi        = Graph(self, data,'KPI')
+        self.treemap    = Graph(self, data,'Tree Map')
+        self.heatmap    = Graph(self, data,'Heat Map')
         self.rawdata    = RawData(data)
         self.first      = RawData(data, limit=1)
         self.data       = AggregatedData(data)
@@ -51,7 +52,6 @@ class Source(object):
         """
         server_url = self.__data['url']
         headers = self.__data['headers']
-        print('Fetching source fields...')
         vis = rest.getSourceById(server_url, headers, self.id)
         if vis and not conf: # Only print the attrs config. No update
             print('')
