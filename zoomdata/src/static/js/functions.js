@@ -10,7 +10,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+ **/
 
 function setPickers(htmlStr, pickersVal) {
     if (pickersVal.length != undefined) { //When is a multi-metric chart
@@ -133,6 +133,7 @@ function toPickerFormat(field){
                 } 
                 if(field.sort.func) picker.mfunc = field.sort.func.toLowerCase()
                 if(field.func) picker.func = field.func
+                if(field.granularity) picker.func = field.granularity
                 if(field.args) picker.args = field.args
                 if(field.form){
                     picker.form = field.form
@@ -150,7 +151,6 @@ function toPickerFormat(field){
     }
     return picker
 }
-
 
 function getValue(oldval, newval, accessor=false){
     if(newval){

@@ -99,12 +99,15 @@ class StaticFiles(object):
     def __init__(self):
         pass
 
-    def jstools(self):
-        tools = ''
+    def js(self, fname):
+        code = ''
         path = os.path.dirname(os.path.realpath(__file__))
-        with open(path+'/static/js/tools.js') as tool: #Set of functions used within the script
-            tools = ''.join(tool.readlines())
-        return tools
+        file = path+'/static/js/'+fname+'.js'
+        with open(file) as f: # The embeding visualization code
+            code = ''.join(f.readlines())
+            # Remove the license 
+            code = code.split('**/')[1]
+        return code 
 
     def css(self):
         styles = ''
@@ -112,12 +115,4 @@ class StaticFiles(object):
         with open(path+'/static/css/style.css') as f: #Set of functions used within the script
             styles = ''.join(f.readlines())
         return styles 
-
-    def jscode(self, chart):
-        code = ''
-        path = os.path.dirname(os.path.realpath(__file__))
-        file = path+'/static/js/render/'+chart+'.js'
-        with open(file) as f: #Set of functions used within the script
-            code = ''.join(f.readlines())
-        return code 
 

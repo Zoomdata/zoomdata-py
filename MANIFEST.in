@@ -1,4 +1,3 @@
-include zoomdata/src/static/js/tools.js
-include zoomdata/src/static/js/render/*.js
-include zoomdata/src/static/js/visdef/*.json
+include zoomdata/src/static/js/*.js
+include zoomdata/src/static/json/*.json
 include zoomdata/src/static/css/style.css

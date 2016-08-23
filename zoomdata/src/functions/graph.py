@@ -28,6 +28,13 @@ templ   = Template()
 static  = StaticFiles()
 
 class Graph(object):
+    """ Renders and embbed visualization from Zoomdata. It may take different options depending on the chart type:
+        .chart('Chart name') The chart name must be specified. 'Bars' it used by default. This is not required if
+        using the convenience functions (.pie, .donut, .heatmap)
+
+        .grouby() Takes as parameters one or many Attribute objects, or a list of them.
+        .metric() Takes as parameters one or many Metrics objects, or a list of them (If is a multi-metric chart).
+    """
 
     def __repr__(self):
         return """To execute this please add brackets at the end of the expression () or append .execute()"""
@@ -47,7 +54,7 @@ class Graph(object):
         self.__yaxis2   = []  
         self.__filters  = []
         self.__timeFilter = None
-        self.__colors   = []
+        self.__colors   = {}
         self.__error    = False
 
         self.__showPickers = True
@@ -199,8 +206,8 @@ class Graph(object):
                         field.update({'label':flabel, 'type':ftype})
                         if ftype == "TIME" :
                             field['sort']['name'] = field['name']
-                            if not field.get('func', False):
-                                field.update({'func':'YEAR'})
+                            if not field.get('granularity',False):
+                                field.update({'granularity':'YEAR'})
                     else:
                         print("Field %s was not found in the source fields definition" % field['name'])
                         return False
@@ -223,7 +230,6 @@ class Graph(object):
             self.__clear_attrs__()
             return False
         initVars = [
-            static.jstools(),
             js.var('v_defPicker', js.s(defPickers)),
             js.var('v_credentials', js.s(creds)),
             js.var('v_conf', js.s(self.__data['conf'])),
@@ -239,9 +245,11 @@ class Graph(object):
             js.var("v_isHistogram", histogram)
         ]
         initVars = "".join(initVars)
-        code = static.jscode('chart')
-        #Wrap it up!
-        jscode = code.replace("_INITIAL_VARS_", initVars)
+        jscode = static.js('graph')
+        # Wrap it up!
+        jscode = jscode.replace("__VARIABLES__", initVars)
+        jscode = jscode.replace("__FUNCTIONS__", static.js('functions'))
+        jscode = jscode.replace("__PICKERS__",   static.js('pickers'))
         return jscode
 
     def execute(self): 
