@@ -35,6 +35,7 @@ class AggregatedData(object):
         self.__filters  = []
         self.__time     = None
         self.__error    = False
+        self.__print_ws_requests = False
 
     def __clear_attrs__(self):
         self.__dimensions = []
@@ -42,9 +43,14 @@ class AggregatedData(object):
         self.__filters  = []
         self.__time     = None
         self.__error    = False
+        self.__print_ws_requests = False
 
     def __call__(self):
         return self.execute()
+
+    def _wsrequest(self):
+        self.__print_ws_requests = True
+        return self
 
     def groupby(self, *args):
         if not args: return self
@@ -79,8 +85,7 @@ class AggregatedData(object):
             #Model: { "limit": 20, "sort": { "direction": "ASC", "type": "ALPHABETICAL" } }
             elif f['sort']['name'] == f['name']:
                 agw['sort']['type'] = 'ALPHABETICAL'
-                if agw.get('metric', False):
-                    agw.pop('metric')
+                agw['sort'].pop('metric')
             #Model:{ "limit": 20, "sort": { "direction": "ASC", "metric": { "field": {"name": "qtysold"}, "function": "SUM", "type": "FIELD" }, "type": "METRIC" } }
             else:
                 agw['sort']['metric'].update({'field':{'name':f['sort']['name']},
@@ -173,6 +178,8 @@ class AggregatedData(object):
             }
             # WS request
             ws = create_connection(socketUrl)
+            if self.__print_ws_requests:
+                print(json.dumps(request))
             ws.send(json.dumps(request))
             req_done = False
             dataframe = []

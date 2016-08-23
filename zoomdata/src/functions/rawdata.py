@@ -24,16 +24,6 @@ rest = RestCalls()
 class RawData(object):
     """
     Returns the raw data from the specified source as a pandas dataframe object.
-    Parameters:
-        - fields: (optional). A list with the name of the fields. The fetched data will be restricted only to these fields. All fields will be returned if no fields list is specified.
-        - rows: Integer (optional). The limit of rows fetched. Default is 10,000. Top limit is 1,000,000.
-        - filters: List of dicts (optional). A list of filters for the raw data. Ex:
-            filters = [{'path':'fieldname','operation':'IN', 'value':['value1','value2']},{...}]
-            If ZD._filters is defined it will affect this method. If the filters parameter is specified it will used instad of ZD._filters, 
-        -exclude: List (optional). A list with the name of fields to exclude. The fetched data will include all source fields or those specified by field parameter and will exclude those specified by this parameter.
-        -time: Dict(optional). Time range for a time field if the source have any. Ex:
-            time = { 'timeField': 'timefield', 'from': '+2008-01-01 01:00:00.000', 'to': '+2008-12-31 12:58:00.000'}
-            If ZD._timeFilter is defined it will affect this method. If a time parameter is specified it will used instad of ZD._timeFilter, 
     """
 
     def __repr__(self):
@@ -47,6 +37,7 @@ class RawData(object):
         self.__time     = {}
         self.__limit    = limit
         self.__error    = False
+        self.__print_ws_requests = False
 
     def __clear_attrs__(self):
         self.__filters  = []
@@ -55,9 +46,14 @@ class RawData(object):
         self.__time     = {}
         self.__limit    = 10000
         self.__error    = False
+        self.__print_ws_requests = False
 
     def __call__(self):
         return self.execute()
+
+    def _wsrequest(self):
+        self.__print_ws_requests = True
+        return self
 
     def fields(self, *args):
         if isinstance(args[0], list):
@@ -141,6 +137,9 @@ class RawData(object):
             }
             if self.__time:
                 request.update({'time':self.__time})
+            #If requested, print the request
+            if self.__print_ws_requests:
+                print(json.dumps(request))
             #Clean all attributes
             self.__clear_attrs__()
             # WS request
