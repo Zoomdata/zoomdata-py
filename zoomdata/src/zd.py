@@ -23,7 +23,6 @@ from time import sleep
 from .rest import RestCalls
 from .source import Source
 from .visdefinition import VisDefinition
-from .visrender import VisRender
 from .config import *
 from .static_builder import JSBuilder
 from IPython.display import display, HTML
