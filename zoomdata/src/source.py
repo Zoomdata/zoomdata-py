@@ -70,3 +70,19 @@ class Source(object):
             print('Updating source fields...')
             if(rest.updateSourceDefinition(server_url, headers, self.id, vis)):
                 print('Done!')
+
+    def connection(self):
+        """
+        Return the connection parameters for a the source. 
+        """
+        print('Fetching source parameters...')
+        server_url = self.__data['url']
+        headers = self.__data['headers']
+        vis = rest.getSourceById(server_url, headers, self.id)
+        if vis:
+            print('')
+            print('Name : '+vis['name'])
+            print('ID : '+self.id)
+            print('Storage: '+vis['type'])
+            for key in vis['storageConfiguration']:
+                print(key+': '+str(vis['storageConfiguration'][key]))
