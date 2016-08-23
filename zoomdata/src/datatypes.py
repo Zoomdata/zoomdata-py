@@ -168,19 +168,24 @@ class TimeFilter(object):
         date = {"sm":"01", "em":"12", "sd": "01", "ed":"31"}
         parts = udate.split(" ")
         ymd = parts[0].split("-")
+        fmt_date = ""
         if len(ymd) == 1:
             if not to: # Only the year was specified
-                return "+%s-%s-%s %s" % (ymd[0], date['sm'], date['sd'], hour['start'])
-            return "+%s-%s-%s %s" % (ymd[0], date['em'], date['ed'], hour['end'])
+                fmt_date = "%s-%s-%s %s" % (ymd[0], date['sm'], date['sd'], hour['start'])
+            fmt_date = "%s-%s-%s %s" % (ymd[0], date['em'], date['ed'], hour['end'])
         elif len(ymd) == 2:
             if not to: # year-month 
-                return "+%s-%s-%s %s" % (ymd[0], ymd[1], date['sd'], hour['start'])
-            return "+%s-%s-%s %s" % (ymd[0], ymd[1], date['ed'], hour['end'])
+                fmt_date = "%s-%s-%s %s" % (ymd[0], ymd[1], date['sd'], hour['start'])
+            fmt_date = "%s-%s-%s %s" % (ymd[0], ymd[1], date['ed'], hour['end'])
         elif len(ymd) == 3:
             if not to: # year-month-day 
-                return "+%s-%s-%s %s" % (ymd[0], ymd[1], ymd[2], hour['start'])
-            return "+%s-%s-%s %s" % (ymd[0], ymd[1], ymd[2], hour['end'])
-        return udate
+                fmt_date = "%s-%s-%s %s" % (ymd[0], ymd[1], ymd[2], hour['start'])
+            fmt_date = "%s-%s-%s %s" % (ymd[0], ymd[1], ymd[2], hour['end'])
+        if not '+' in fmt_date:
+            fmt_date = '+' + fmt_date
+        if len(parts) > 1:
+            return udate
+        return fmt_date
     
     def start(self, start):
         if not isinstance(start, str):
