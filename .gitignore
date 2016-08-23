@@ -4,46 +4,12 @@
 .DS_Store
 *.vim
 
-build/lib/zoomdata/__init__.py
+build*
+dist*
+zoomdata.egg*
 
-build/lib/zoomdata/data_handler.py
+build/lib/zoomdata/src/static_builder.py
 
-build/lib/zoomdata/main.py
+build/lib/zoomdata/src/static_builder.py
 
-build/lib/zoomdata/src/__init__.py
-
-build/lib/zoomdata/src/config.py
-
-build/lib/zoomdata/src/jsbuilder.py
-
-build/lib/zoomdata/src/rest.py
-
-build/lib/zoomdata/src/static/css/style.css
-
-build/lib/zoomdata/src/static/js/render/chart.js
-
-build/lib/zoomdata/src/static/js/tools.js
-
-build/lib/zoomdata/src/static/js/visdef/line_bars_trend.json
-
-build/lib/zoomdata/src/static/js/visdef/map_markers.json
-
-build/lib/zoomdata/src/templates.py
-
-build/lib/zoomdata/src/visdefinition.py
-
-build/lib/zoomdata/src/visrender.py
-
-build/lib/zoomdata/src/zd.py
-
-dist/zoomdata-0.1-py3.5.egg
-
-zoomdata.egg-info/dependency_links.txt
-
-zoomdata.egg-info/PKG-INFO
-
-zoomdata.egg-info/requires.txt
-
-zoomdata.egg-info/SOURCES.txt
-
-zoomdata.egg-info/top_level.txt
+build/lib/zoomdata/src/static_builder.py
