@@ -93,7 +93,7 @@ class Attribute(object):
             attr.update({'type': 'TIME', 'granularity':self.__unit})
         if 'ALPHAB' in self.__sortdir:
             self.__sort = self.__name
-            self.__sortdir = 'ASC' if self.__sortdir is 'ALPHAB' else 'DESC'
+            self.__sortdir = 'ASC' if self.__sortdir == 'ALPHAB' else 'DESC'
             self.__sortfunc = False
         if self.__sort == 'count':
             self.__sortfunc = False
