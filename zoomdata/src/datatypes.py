@@ -183,7 +183,7 @@ class TimeFilter(object):
             fmt_date = "%s-%s-%s %s" % (ymd[0], ymd[1], ymd[2], hour['end'])
         if not '+' in fmt_date:
             fmt_date = '+' + fmt_date
-        if len(parts) > 1:
+        if len(parts) > 1 or 'start_of_data' in udate or 'end_of_data' in udate:
             return udate
         return fmt_date
     
