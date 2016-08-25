@@ -139,7 +139,11 @@ class RawData(object):
                 request.update({'time':self.__time})
             #If requested, print the request
             if self.__print_ws_requests:
+                print('----WS URL-----')
+                print(socketUrl)
+                print('----WS REQUEST-----')
                 print(json.dumps(request))
+                print('-------------------')
             #Clean all attributes
             self.__clear_attrs__()
             # WS request

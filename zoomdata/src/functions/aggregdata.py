@@ -179,7 +179,11 @@ class AggregatedData(object):
             # WS request
             ws = create_connection(socketUrl)
             if self.__print_ws_requests:
+                print('----WS URL-----')
+                print(socketUrl)
+                print('----WS REQUEST-----')
                 print(json.dumps(request))
+                print('-------------------')
             ws.send(json.dumps(request))
             req_done = False
             dataframe = []
