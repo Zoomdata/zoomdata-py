@@ -180,6 +180,7 @@ function getValue(oldval, newval, accessor=false){
 
 function loadUserPickers(){
     mgroupRegex = /Group [1-9]/g
+    auxMetric = 1
     for (acc in v_pickersValues){
         if(acc == "Group By"){
             if(v_defPicker.field){
@@ -197,15 +198,32 @@ function loadUserPickers(){
                 v_pickersValues[acc] = toPickerFormat(v_defPicker.trend[0])
                 setDimension(acc)
         }}
-        else if(acc == "Metric" || acc == "Size" || acc == "Color Metric"){
+        else if(acc == "Metric" || acc == "Size" || acc == "Color Metric" || acc == "Bubble Size"){
             if(v_defPicker.metric){
                 v_pickersValues[acc] = toPickerFormat(v_defPicker.metric[0])
                 setMetric(acc)
         }}
-        else if(acc == "Y Axis"){
-            if(v_defPicker.y){
-                v_pickersValues[acc] = toPickerFormat(v_defPicker.y[0])
+        else if(acc == "Bar Height"){ //This belongs to a multiple metrics
+            if(v_defPicker.metric){
+                v_pickersValues[acc] = []
+                for(i = 0; i < v_defPicker.metric.length; i++){
+                    v_pickersValues[acc].push(toPickerFormat(v_defPicker.metric[i]))
+                }
                 setMetric(acc)
+        }}
+        else if(acc == "Y Axis"){ //This could be a multiple metrics
+            if(v_defPicker.y){
+                if(v_chart == "Line Trend: Multiple Metrics"){
+                    v_pickersValues[acc] = []
+                    for(i = 0; i < v_defPicker.y.length; i++){
+                        v_pickersValues[acc].push(toPickerFormat(v_defPicker.y[i]))
+                    }
+                    setMetric(acc)
+                } 
+                else{
+                    v_pickersValues[acc] = toPickerFormat(v_defPicker.y[0])
+                    setMetric(acc)
+                }
         }}
         else if(acc == "X Axis"){
             if(v_defPicker.x){
@@ -219,9 +237,16 @@ function loadUserPickers(){
         }}
         else if(acc == "Y2 Axis"){
             if(v_defPicker.y2){
-                v_pickersValues[acc]= gtoPickerFormat(v_defPicker.y2[0])
+                v_pickersValues[acc]= toPickerFormat(v_defPicker.y2[0])
                 setMetric(acc)
         }}
+        else{ //Other un-handled metrics: Bar Color, Bubble Color...etc
+            if(v_defPicker.metric && v_defPicker.metric.length > auxMetric){
+                v_pickersValues[acc] = toPickerFormat(v_defPicker.metric[auxMetric])
+                setMetric(acc)
+                auxMetric += 1
+            }
+        }
     }
 }
 

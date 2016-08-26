@@ -58,8 +58,8 @@ class Graph(object):
         self.__error    = False
 
         self.__showPickers = True
-        self.__width = 800
-        self.__height = 400
+        self.__width = 850
+        self.__height = 500
         self.__pickers = {}
 
         if not shortcut:
@@ -78,8 +78,8 @@ class Graph(object):
         self.__timeFilter = None
         self.__error    = False
         self.__showPickers = True
-        self.__width = 800
-        self.__height = 400
+        self.__width = 850
+        self.__height = 500
         if not self.__shortcut:
             self.__chart = "Bars"
         self.__pickers = {}
@@ -139,12 +139,15 @@ class Graph(object):
             self.__trend = timefield.getval()
         return self
 
-    def metric(self, metric):
-        if not isinstance(metric, Metric):
-            print('metric field should be an Metric object')
-            self.__error = True
-        else:
-            self.__metric = metric.getval()
+    def metric(self, *args):
+        if isinstance(args[0], list):
+            args = args[0]
+        for m in args:
+            if not isinstance(m, Metric):
+                print('All metric parameters must be Metric objects')
+                self.__error = True
+                return self
+            self.__metric.append(m.getval())
         return self
 
     def x(self, axis):
@@ -155,12 +158,15 @@ class Graph(object):
             self.__xaxis = axis.getval()
         return self
 
-    def y(self, axis):
-        if not isinstance(axis, Metric):
-            print('Y Axis field should be an Metric object')
-            self.__error = True
-        else:
-            self.__yaxis = axis.getval()
+    def y(self, *args):
+        if isinstance(args[0], list):
+            args = args[0]
+        for m in args:
+            if not isinstance(m, Metric):
+                print('All Y Axis parameters must be Metric objects')
+                self.__error = True
+                return self
+            self.__yaxis.append(m.getval())
         return self
 
     def y1(self, axis):
@@ -208,6 +214,8 @@ class Graph(object):
                             field['sort']['name'] = field['name']
                             if not field.get('granularity',False):
                                 field.update({'granularity':'YEAR'})
+                    elif field['name'] == 'count':
+                        pass
                     else:
                         print("Field %s was not found in the source fields definition" % field['name'])
                         return False
