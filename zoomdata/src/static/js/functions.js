@@ -147,6 +147,7 @@ function toPickerFormat(field){
             func: field.func,
             label:field.label
         } 
+        if(field.name == "count") picker.func = undefined
         if(field.func) picker.func = field.func.toLowerCase()
     }
     return picker
