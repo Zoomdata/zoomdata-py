@@ -18,8 +18,11 @@ import pandas as pd
 from .functions.rawdata import RawData
 from .functions.aggregdata import AggregatedData
 from .functions.graph import Graph
+from zoomdata.src.visdefinition import VisDefinition
 from zoomdata.src.rest import RestCalls
+
 rest = RestCalls()
+vd = VisDefinition()
 
 class Source(object):
 
@@ -41,7 +44,6 @@ class Source(object):
         self.first      = RawData(data, limit=1)
         self.data       = AggregatedData(data)
         # self.setvisualization = Visualization()
-
 
     def fields(self, conf={}):
         """
@@ -86,3 +88,68 @@ class Source(object):
             print('Storage: '+vis['type'])
             for key in vis['storageConfiguration']:
                 print(key+': '+str(vis['storageConfiguration'][key]))
+
+    def setVisualization(self, name, definition={}):
+        """
+        Configure a visualization to the source. The specified visualization must be supported by Zoomdata
+        and by the source. Ex: You can not specify a Map if the source does not have maps information (lat/long)
+        """
+        server_url = self.__data['url']
+        headers = self.__data['headers']
+        if(headers['Authorization']):
+            # 1. First get the ID of the specific visualization
+            print('Checking allowed chart types...')
+            if not (self.__data['source_charts']):
+                allVisuals = rest.getVisualizationsList(server_url, headers)
+            visualsNames = [v['name'] for v in allVisuals]
+            if name not in visualsNames:
+                print('Visualization type not found or not configured. Supported visualizations are:')
+                print('\n'.join(visualsNames))
+            else:
+                visId = [v['id'] for v in allVisuals if v['name'] == name]
+                result = False
+                if name == 'Map: Markers':
+                    result = vd.setMapMarkers(visId[0], definition, server_url, headers, self.id)
+                elif name == 'Line & Bars Trend':
+                    result = vd.setLineBarsTrend(visId[0], definition, server_url, headers, self.id)
+                if result:
+                    self.__data['source_charts'].append(name)
+                else:
+                    print('Error: Probably the add/update feature is not supported yet for this chart type.')
+        else:
+            print('You need to authenticate: ZD.auth("user","password")')
+
+    def append(self, dataframe): 
+        """Updates the source by appending the new data to the existing one.
+           Parameters:
+                dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
+        """
+        server_url = self.__data['url']
+        headers = self.__data['headers']
+        sources = rest.getAllSources(server_url, headers)
+        # Validate if the source was deleted after closing/re-opening the notebook
+        if self.name not in sources:  
+            print('This is not a valid source anymore. Execute ZD.sources() to get a list of available sources')
+        else:
+            # Check if is a different source (deleted/created) with the same name
+            source_id = rest.getSourceID(server_url, headers, self.name)
+            if source_id != self.id:
+                print('This is not a valid source anymore. Execute ZD.sources() to get a list of available sources')
+            else:
+                urlParams = { 'separator':',',
+                              'contentType':'text/csv',
+                              'includesHeader':'true',
+                              'includesNewFields':'true' }
+                #Convert dataframe from whatever it is to csv
+                print('Parsing data...')
+                try:
+                    df = dataframe.to_csv() 
+                    #If not corrected, pandas adds a column with a row counter. This column must not be part of the source data
+                    if df[0] == ',':
+                        rows = df.split('\n')
+                        rows = [r.split(',',1)[-1] for r in rows]
+                        df = '\n'.join(rows)
+                except:
+                    print('Invalid dataframe')
+                resp, upd = rest.createSourceFromData(server_url, headers, \
+                                                self.__data['account'], self.name, df, urlParams, False)

@@ -22,38 +22,26 @@ import pandas as pd
 from time import sleep
 from .rest import RestCalls
 from .source import Source
-from .visdefinition import VisDefinition
 from .config import *
-from .static_builder import JSBuilder
 from IPython.display import display, HTML
 
+rest = RestCalls()
 home_dir = os.path.expanduser('~')
 
 SOURCES_JSON_FILE = home_dir + "/.sources.json"
 USERDATA_FILE = home_dir + "/.userdata.pkl"
 
-rest = RestCalls()
-vd = VisDefinition()
-js = JSBuilder()
-
-def data(resp):
-    return resp.data.decode('ascii')
-
 class Zoomdata(object):
 
-    """ Works as an API connector with Zoomdata services and SDK
+    """ Works as an API connector with the Zoomdata services and SDK
     allowing to bring visualizations, work with sources, fetch and send data..
     """
 
     def __init__(self):
-        """ To ensure maximum flexibility for the visualization configuration
-        here must be setted all values that may change """
-
-        #Main configurations
         self._conf = config
         protocol = 'https' if config['secure'] else 'http'
         self._serverURL = '%s://%s:%s%s' % (protocol, config['host'], config['port'], config['path'])
-        self._source_credentials = {}
+        self._source_credentials = {} # Saves the pair key,id for the used sources
 
         if os.path.exists(SOURCES_JSON_FILE):
             with open(SOURCES_JSON_FILE,'r') as sc:
@@ -69,39 +57,25 @@ class Zoomdata(object):
         self._account = ''
         self._token = ''
 
-        # Dataframe fetching attrs
-        self._dframe= ''
-        self._logcount = 0
-
-        # Iframe size for the visualization
-        self._width = 800
-        self._height = 400
-
-        # Visualization attrs
-        self._source = ''
-        self._chart = 'Bars' # A common default visualization
-        self._renderCount = 0 # To render a different chart each time. (jquery element)
-        self._credentials = ''  # This is the key to get the source key to get the visualization
-        self._source_id = '' # This is the source id to get the source definition
-        self._source_charts = [] # Active visualizations for the current source
-        self._allowed_visuals = [] # All the visualizations names allowed by zoomdata
-        self._variables = {} # This is a default configuration used to render a visualization. Usually extracted from the vis definition
-        self._filters = [] # This filters are usually extracted from the vis definition.
-        self._timeFilter = {} # Time filter. Usually extracted from the vis definition (Provided by the timebar)
-        self._graphFilters = [] # Filters defined by the user to narrow visualization results in graph() 
-        self._pickers = {} # Default pickers values for the visualization
-
-    def auth(self, server, user, password):
+    def auth(self, user, password, host=False):
+        """
+        Authenticates a user to allow the communication between the module and Zoomdata
+        Parameters:
+            - user: (String) A valid user from zoomdata
+            - password: (String) 
+            - host (String) Optional. The server url where the zoomdata server is located. If no specified default configuration
+                            will be used.
+        """
         cred = user+':'+password
         key = base64.b64encode(cred.encode('ascii'))
         key = 'Basic ' + key.decode('ascii')
         self._conf['headers']['Authorization'] = key
-        # Get the account
-        if server:
-            server.rstrip('/')
-            self._serverURL = server
+        if host:
+            host.rstrip('/')
+            self._serverURL = host 
         self._account = rest.getUserAccount(self._serverURL, self._conf['headers'], user)
-        self._user = user
+        if self._account:
+            self._user = user
 
     def __updateSourceFile(self):
         with open(SOURCES_JSON_FILE, 'w') as sc:
@@ -109,7 +83,6 @@ class Zoomdata(object):
 
     def _oauth(self, user):
         # Ideally this should go within data_handler
-        self._user = user
         if(os.path.exists(USERDATA_FILE)):
             datafile = open(USERDATA_FILE, 'rb')
             data = pickle.load(datafile)
@@ -120,6 +93,7 @@ class Zoomdata(object):
                 self._token = userdata['token']
                 key = "Bearer {}".format(userdata['token'])
                 self._conf['headers']['Authorization'] = key
+                self._user = user
 
     def register(self, sourceName, dataframe): 
         """Creates a new Zoomdata source or updates an existing one. If the source exists all data will be
@@ -128,62 +102,38 @@ class Zoomdata(object):
                 sourceName: The name of the source to be created / update.
                 dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
         """
-        self.__sourceData(sourceName, dataframe, True)
-
-    def append(self, sourceName, dataframe): 
-        """Updates a source by appending the new data to the existing one.
-           Parameters:
-                sourceName: The name of the source to update.
-                dataframe: Contains the data used to populate the source, commonly a pandas dataframe is used
-        """
-        if(self._conf['headers']['Authorization']):
-            sources = rest.getAllSources(self._serverURL, self._conf['headers'])
-            if sourceName not in sources:  
-                print('%s is not a valid source. Execute ZD.sources() to get a list of available sources' % sourceName)
-            else:
-                self.__sourceData(sourceName, dataframe, False)
-        else:
-            print('You need to authenticate: ZD.auth("user","password")')
-
-    def __sourceData(self, sourceName, dataframe, replace): 
-        if(self._conf['headers']['Authorization']):
-            urlParams = { 'separator':',',
-                          'contentType':'text/csv',
-                          'includesHeader':'true',
-                          'includesNewFields':'true' }
-            #Convert dataframe from whatever it is to csv
-            print('Parsing data...')
-            try:
-                df = dataframe.to_csv() 
-                #If not corrected, pandas adds a column with a row counter. This column must not be part of the source data
-                if df[0] == ',':
-                    rows = df.split('\n')
-                    rows = [r.split(',',1)[-1] for r in rows]
-                    df = '\n'.join(rows)
-            except:
-                print('Invalid dataframe')
-
-            resp, upd = rest.createSourceFromData(self._serverURL, self._conf['headers'], \
-                                            self._account, sourceName, df, urlParams, replace)
-            if resp and upd:
-                # Avoid using wrong (deprecated) keys in case an old source with the same name
-                # existed. This is only for new sources
-                self._source_id = rest.getSourceID(self._serverURL, self._conf['headers'], sourceName)
-                acc_token = False if self._token == '' else self._token
-                self._credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
-                self._source = sourceName
-                self._source_credentials.update({sourceName: [ self._credentials, self._source_id ]})
+        urlParams = { 'separator':',',
+                      'contentType':'text/csv',
+                      'includesHeader':'true',
+                      'includesNewFields':'true' }
+        #Convert dataframe from whatever it is to csv
+        print('Parsing data...')
+        try:
+            df = dataframe.to_csv() 
+            #If not corrected, pandas adds a column with a row counter. This column must not be part of the source data
+            if df[0] == ',':
+                rows = df.split('\n')
+                rows = [r.split(',',1)[-1] for r in rows]
+                df = '\n'.join(rows)
+        except:
+            print('Invalid dataframe')
+        resp, upd = rest.createSourceFromData(self._serverURL, self._conf['headers'], \
+                                        self._account, sourceName, df, urlParams, True)
+        if resp and upd:
+            # Avoid using wrong (deprecated) keys in case an old source with the same name
+            # existed. This is only for new sources
+            source_id = rest.getSourceID(self._serverURL, self._conf['headers'], sourceName)
+            acc_token = False if self._token == '' else self._token
+            source_key = rest.getSourceKey(self._serverURL, self._conf['headers'], sourceName, token=acc_token)
+            self._source_credentials.update({sourceName: [ source_key, source_id ]})
+            self.__updateSourceFile()
+            vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
+            if vis:
                 self.__updateSourceFile()
-                vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
-                if vis:
-                    self._source_charts = [v['name'] for v in vis['visualizations']]
-                    self.__updateSourceFile()
-        else:
-            print('You need to authenticate: ZD.auth("user","password")')
 
     def sources(self):
         """ List the availables sources for the account"""
-        if(self._conf['headers']['Authorization']):
+        if(self._user):
             sources = rest.getAllSources(self._serverURL, self._conf['headers'])
             if sources:
                 count = 1
@@ -193,42 +143,9 @@ class Zoomdata(object):
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
-
-    #====== SET CHART TYPES FOR A VISUALIZATION IF IT DOES NOT HAVE IT ==========
-    def setVisualization(self, name, definition={}):
-        if(self._conf['headers']['Authorization']):
-            # 1. First get the ID of the specific visualization
-            if self._credentials:
-                print('Checking allowed chart types...')
-                if not (self._allowed_visuals):
-                    self._allowed_visuals = rest.getVisualizationsList(self._serverURL, self._conf['headers'])
-                visualsNames = [v['name'] for v in self._allowed_visuals]
-                if name not in visualsNames:
-                    print('Visualization type not found or not configured. Supported visualizations are:')
-                    print('\n'.join(visualsNames))
-                else:
-                    visId = [v['id'] for v in self._allowed_visuals if v['name'] == name]
-                    result = False
-                    if name == 'Map: Markers':
-                        result = vd.setMapMarkers(visId[0], definition, self._serverURL, \
-                                                    self._conf['headers'], self._source_id)
-                    elif name == 'Line & Bars Trend':
-                        result = vd.setLineBarsTrend(visId[0], definition, self._serverURL, \
-                                                    self._conf['headers'], self._source_id)
-                    if result:
-                        self._source_charts.append(name)
-                    else:
-                        print('Error: Probably the add/update feature is not supported yet for this chart type.')
-
-            else:
-                print('You must define a source before setting a new visualization')
-        else:
-            print('You need to authenticate: ZD.auth("user","password")')
-
-            
     def source(self, nsource):
         """
-        Allows to manually set up a new source for different operations just as fields() or getConnectionData()
+        Returns a Source object as a representation for the given source
         Parameters:
             - source: (String). The name of the source
         """
@@ -236,20 +153,16 @@ class Zoomdata(object):
         if not nsource:
             print('A source name must be specified')
             return False
-        if(self._conf['headers']['Authorization']):
+        if(self._user):
             #To avoid useless requests, check the local env to see if the source is registered
             credentials = False
             source_id = False
             if self._source_credentials.get(nsource, False): # If the source is allready registered
-                credentials = self._source_credentials[nsource][0] # The key of the source
-                source_id = self._source_credentials[nsource][1] # The id of the source
+                source_key = self._source_credentials[nsource][0] # The key of the source
+                source_id  = self._source_credentials[nsource][1] # The id of the source
 
             #Check the source saved data match the one with zoomdata
-            if(self._conf['headers']['Authorization']):
-                check_source_id = rest.getSourceID(self._serverURL, self._conf['headers'], nsource)
-            else:
-                print('You need to authenticate: ZD.auth("user","password")')
-                return False
+            check_source_id = rest.getSourceID(self._serverURL, self._conf['headers'], nsource)
             if not check_source_id:
                 print('The requested source does not exists. To get all the active sources execute: ZD.sources()')
                 return False
@@ -260,29 +173,27 @@ class Zoomdata(object):
 
             if not credentials: 
                 acc_token = False if self._token == '' else self._token
-                credentials = rest.getSourceKey(self._serverURL, self._conf['headers'], nsource, token=acc_token)
-                if not credentials:
+                source_key= rest.getSourceKey(self._serverURL, self._conf['headers'], nsource, token=acc_token)
+                if not source_key:
                     print('Some problems were found trying to set up this source, perhaps it was deleted from Zoomdata')
                     return False
-            self._source = nsource
-            self._credentials = credentials
-            self._source_id = source_id
-            self._source_credentials.update({nsource: [ self._credentials, self._source_id ]})
-            vis = rest.getSourceById(self._serverURL, self._conf['headers'], self._source_id)
+            self._source_credentials.update({nsource: [ source_key, source_id ]})
+            vis = rest.getSourceById(self._serverURL, self._conf['headers'], source_id)
             if vis:
-                self._source_charts = [v['name'] for v in vis['visualizations']]
+                source_charts = [v['name'] for v in vis['visualizations']]
                 self.__updateSourceFile()
 
                 # This is for the new syntax
                 data = {
+                        'conf': self._conf,
                         'source_name': nsource,
                         'source_id': source_id,
-                        'source_charts': self._source_charts,
-                        'source_key': credentials,
+                        'source_charts': source_charts,
+                        'source_key': source_key,
                         'headers': self._conf['headers'],
                         'url': self._serverURL,
                         'token': self._token or False,
-                        'conf': self._conf
+                        'account': self._account
                         }
                 return Source(data)
 
@@ -295,8 +206,6 @@ class Zoomdata(object):
         else:
             print('You need to authenticate: ZD.auth("user","password")')
             return False
-
-
 
     #====== PROPERTIES (DEFINED THIS WAY TO PROVIDE DOCSTRING) ===============
     @property

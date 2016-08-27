@@ -16,6 +16,7 @@
 import urllib3
 from urllib3.exceptions import MaxRetryError
 import json
+import re
 from urllib.parse import quote
 urllib3.disable_warnings()
 http = urllib3.PoolManager()
@@ -83,6 +84,11 @@ class RestCalls(object):
         return False
 
     def getUserAccount(self, url, headers, user):
+        check = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', url)
+        if not check:
+            print('%s is not a valid host' % url)
+            print('For authentication use: ZD.auth(user, password, [host])')
+            return False
         service = '/api/users/username/'+user
         try:
             r = http.request('GET', url+service ,headers=headers)
