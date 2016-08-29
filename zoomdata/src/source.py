@@ -58,9 +58,13 @@ class Source(object):
         if vis and not conf: # Only print the attrs config. No update
             print('')
             dataframe = []
+            # Fields
             for f in vis['objectFields']:
-                dataframe.append([f['name'], f['label'], f['type'], f['visible']])
-            dataframe = pd.DataFrame(dataframe, columns=['Name','Label','Type','Visible'])
+                dataframe.append([f['name'], f['label'], f['type'], f['visible'],'-'])
+            # Formulas
+            for f in vis['formulas']:
+                dataframe.append([f['name'], f['label'], 'CALC', f['valid'], f['script']])
+            dataframe = pd.DataFrame(dataframe, columns=['Name','Label','Type','Visible','Script'])
             return dataframe
         elif vis and conf: #Do not print, just update
             fields = [f for f in conf.keys()]
