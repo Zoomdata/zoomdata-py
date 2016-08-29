@@ -16,7 +16,9 @@
 # ===================================================================
 import json
 from datetime import datetime
-FILTER_OPERATIONS= [# Containment
+FILTER_OP_EQUIVALENTS= ["IN", "NOTIN", "<=", "<", ">=", ">", "=", "!=",
+                        "()", "AND", "OR", "TS", "==="]
+ZD_FILTER_OPERATIONS= [# Containment
                     "IN",
                     "NOTIN",
                     # Comparison and equality
@@ -130,7 +132,10 @@ class Filter(object):
         return json.dumps(attr)
 
     def operation(self, op):
-        if op not in FILTER_OPERATIONS:
+        op = op.upper()
+        if op in FILTER_OP_EQUIVALENTS:
+            op = ZD_FILTER_OPERATIONS[FILTER_OP_EQUIVALENTS.index(op)]
+        if op not in ZD_FILTER_OPERATIONS:
             print("Not a valid filter operation")
             return False
         self.__operation = op
@@ -144,10 +149,12 @@ class Filter(object):
         return self
 
     def getval(self):
+        comp_ops = ["LE", "LT", "GE", "GT", "EQUALS", "NOTEQUALS"]
+        values = self.__values[0] if self.__operation in comp_ops else self.__values
         return {
                 'path': self.__name,
                 'operation': self.__operation,
-                'value': self.__values
+                'value': values
                 }
 
 class TimeFilter(object):
