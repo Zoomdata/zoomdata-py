@@ -12,6 +12,8 @@
  * limitations under the License.
  **/
 
+var metricTypes = ["NUMBER","INTEGER","MONEY","CALC"]
+
 function setPickers(htmlStr, pickersVal) {
     if (pickersVal.length != undefined) { //When is a multi-metric chart
         for (pos in pickersVal) {
@@ -283,7 +285,7 @@ function buildHTML(tag, html, attrs){
 function getDimensionGroup(accessor){
     val = v_pickersValues[accessor]
     if( val.type == "TIME" || val.type == "ATTRIBUTE" || 
-      ( (val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY") && v_isHistogram ) ){
+        ( (metricTypes.indexOf(val.type) > -1) && v_isHistogram ) ){
         group = {
             "name": val.name,
             "label": val.label,
@@ -341,7 +343,7 @@ function getMetricGroup(accessor){
     val = v_pickersValues[accessor]
     if (val.name == "count")  return {"name":val.name, "label":volumeLabel}
     if (val.length == undefined) {
-        if (val.type == "NUMBER" || val.type == "INTEGER" || val.type == "MONEY") {
+        if (metricTypes.indexOf(val.type) > -1) {
             return { "name": val.name, "func": val.func, "label": val.label }
         }
     } else {
@@ -357,6 +359,7 @@ function getMetricGroup(accessor){
     }
     return false
 }
+
 
 function setMetric(accessorName) {
     metric = getMetricGroup(accessorName)
@@ -377,5 +380,34 @@ function getFusionLabel(field){
     label = _(fusionFields).filter(f => f.fields.indexOf(field) > -1).map(f => f.label).value()[0]
     obj = _(fusionFields).filter({"label":label}).value()[0]
     return label +":"+obj.labels[obj.fields.indexOf(field)]
+}
+
+function organizePickers(pickList, ftype){
+    for(i=0; i<pickList.length; i++){
+        fname  = pickList[i].name
+        flabel = pickList[i].label
+        if(metricTypes.indexOf(type) > -1) {
+            //Save the metric field and label
+            metricFields.fields.push(fname)
+            metricFields.labels.push(flabel)
+            metricFields.types.push(ftype)
+            //Create the select
+            metOpt += buildHTML("option", flabel, {value: fname})
+            //Multiple-metrics
+            checkbox = buildHTML("input", "", {value: fname, type:"checkbox", id: fname, name:"multi-metrics"})
+            label = buildHTML("label", this.label, {for: fname})
+            funcSel = buildHTML("select", funcOpt, { id: fname, class: "pickers" })
+            multiMetricTable.push([checkbox, label, funcSel])
+        }
+        else{
+            dimensionFields.fields.push(fname)
+            dimensionFields.labels.push(flabel)
+            dimensionFields.types.push(ftype)
+            dimOpt += buildHTML("option", flabel, {value: fname})
+            if(ftype == "TIME"){
+                trendOpt += buildHTML("option", flabel, {value: fname})
+            }
+        }
+    }
 }
 

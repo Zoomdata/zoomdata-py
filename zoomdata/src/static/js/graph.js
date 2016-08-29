@@ -40,8 +40,15 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
     var trendSelect = ""
     var metricSelect = ""
 
+    var dimOpt = buildHTML("option","Select attribute", {value:""})
+    var metOpt = buildHTML("option","Select metric", {value:""})
+    var trendOpt = buildHTML("option","Select attribute ", {value:""})
+
     //The label for the volume may change
     var volumeLabel= "Count"
+
+    //Store the elements to build up the table in multi metrics pickers
+    var multiMetricTable = []
 
     //Operation for Metric selectors
     funcs = ["Sum","Avg","Min","Max"]
@@ -118,15 +125,40 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
             //Get the correct label for the volume
             volumeLabel = window.viz.source.volumeMetric.label
 
-            //Fill and create the selectors with the source fields
-            var dimOpt = buildHTML("option","Select attribute", {value:""})
-            var metOpt = buildHTML("option","Select metric", {value:""})
-                metOpt += buildHTML("option", volumeLabel, {value:"count"})
-            var trendOpt = buildHTML("option","Select attribute ", {value:""})
+            //Fill the first values for the multimetric table
+            checkbox = buildHTML("input", "", {value: "count", type:"checkbox", id: "count", name:"multi-metrics"})
+            label = buildHTML("label", volumeLabel, {for: "count"})
+            hidden = buildHTML("input", "", {data: "count", type:"hidden"}) //This is a hack for the setPickers function
+            multiMetricTable.push([checkbox, label, hidden])
 
+            //Get the source fields and group them by type
+            var types = {"ATTRIBUTE":[], "TIME":[], "INTEGER":[], "NUMBER":[], "MONEY":[]}
+            $.each(window.viz.source.objectFields, function() {
+                if (this.visible) {
+                    types[this.type].push(this)
+                }
+            });
+
+            //Populate the pickers
+            for(type in types){
+                if(types[type].length > 0){
+                    if(metricTypes.indexOf(type) > -1){
+                        metOpt += buildHTML("option", "[=="+type+"==]", {value: ""})
+                    }
+                    else{
+                        dimOpt += buildHTML("option", "[=="+type+"==]", {value: ""})
+                    }
+                }
+                organizePickers(types[type],type)
+                if(type == "NUMBER"){
+                    //Add the volume to the NUMBER section in the selector
+                    metOpt += buildHTML("option", volumeLabel, {value:"count"})
+                }
+            }
+            
             //Check for fusion sources and get the fused attributes
             fusedAttrs = window.viz.source.fusedAttributes
-            if(fusedAttrs){
+            if(fusedAttrs.length > 0){
                 forms = function(c){
                     fields = _.map(c.forms, "form")
                     labels = _.map(c.forms, "label")
@@ -135,6 +167,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                 fusionFields = _.map(fusedAttrs, forms)
 
                 //Add the fusion fields to the picker 
+                dimOpt += buildHTML("option", "[==FUSED ATTRS==]", {value: ""})
                 _.map(fusionFields,function(f){
                     for(i in f.fields){
                         dimOpt += buildHTML("option", f.label+":"+f.labels[i], {value: f.fields[i]})
@@ -142,40 +175,19 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
                 })
             }
 
-            var multiMetricTable = []
-            checkbox = buildHTML("input", "", {value: "count", type:"checkbox", id: "count", name:"multi-metrics"})
-            label = buildHTML("label", volumeLabel, {for: "count"})
-            hidden = buildHTML("input", "", {data: "count", type:"hidden"}) //This is a hack for the setPickers function
-            multiMetricTable.push([checkbox, label, hidden])
-
-            $.each(window.viz.source.objectFields, function() {
-                if (this.visible) {
-                    if (this.type == "NUMBER" || this.type == "MONEY" || this.type == "INTEGER") {
-                        //Save the metric field and label
-                        metricFields.fields.push(this.name)
-                        metricFields.labels.push(this.label)
-                        metricFields.types.push(this.type)
-                        //Create the select
-                        metOpt += buildHTML("option", this.label, {value: this.name})
-                        //Multiple-metrics
-                        checkbox = buildHTML("input", "", {value: this.name, type:"checkbox", id: this.name, name:"multi-metrics"})
-                        label = buildHTML("label", this.label, {for: this.name})
-                        funcSel = buildHTML("select", funcOpt, { id: this.name, class: "pickers" })
-                        multiMetricTable.push([checkbox, label, funcSel])
-                    } 
-                    else if (this.type == "ATTRIBUTE") {
-                        dimensionFields.fields.push(this.name)
-                        dimensionFields.labels.push(this.label)
-                        dimensionFields.types.push(this.type)
-                        dimOpt += buildHTML("option", this.label, {value: this.name})
-                    }
-                    else if (this.type == "TIME") {
-                        dimensionFields.fields.push(this.name)
-                        dimensionFields.labels.push(this.label)
-                        dimensionFields.types.push(this.type)
-                        trendOpt += buildHTML("option", this.label, {value: this.name})
-                    }
+            //Check for calc (formulas) fields
+            var hasCalc = false
+            $.each(window.viz.source.formulas, function() {
+                if(!hasCalc){
+                    metOpt += buildHTML("option", "[==FORMULAS==]", {value: ""})
+                    hasCalc = true
                 }
+                //Save the metric field and label
+                metricFields.fields.push(this.name)
+                metricFields.labels.push(this.label)
+                metricFields.types.push("CALC")
+                //Create the select
+                metOpt += buildHTML("option", this.label, {value: this.name})
             });
 
             dimensionSelect = buildHTML("select", dimOpt, {id: "dimension", class:"pickers"})

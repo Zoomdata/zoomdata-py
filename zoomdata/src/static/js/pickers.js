@@ -29,7 +29,7 @@ $("body").on("click", "button.btn-dimension", function () {
     } 
     find = "</option></select>"
     selDimOpt = buildHTML("option", label , { value: dim })
-    selDimOpt = "</option>" + selDimOpt + "</select>"
+    selDimOpt = "<option>[==ATTRIBUTE==]</option></option>" + selDimOpt + "</select>"
     var newMetricSelect = metricSelect.replace(find, selDimOpt)
     var newFuncSelect = funcSelect
     var newSortSelect = sortSelect 
@@ -286,7 +286,7 @@ $("body").on("change", "select#dimension", function() {
    }
     text = $("select#dimension option:selected").text()
     value = $( "select#dimension option:selected" ).val()
-    //Validate multimetric fields    
+    //Validate fusion fields    
     if(text.indexOf(":") > -1){ 
         text = text.split(":")[0] 
         value = _(fusionFields).filter({"label":text}).value()[0].name

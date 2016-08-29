@@ -115,6 +115,11 @@ class AggregatedData(object):
             if m['name'] == 'count':
                 self.__metrics.append({'type': 'COUNT'})
             #Model: { "field": { "name": "commission" }, "function": "SUM", "type": "FIELD" }
+            elif "CALC" in m['func']:
+                self.__metrics.append({
+                        'formulaName': m['name'],
+                        'type': 'CALCULATION'
+                    })
             else:
                 self.__metrics.append({
                         'field': {'name': m['name']},
@@ -222,7 +227,7 @@ class AggregatedData(object):
                         fields.append(f['field']['form']) #Fusion sources should be based on the form attr
                     else:
                         fields.append(f['field']['name'])
-                opKeys = ['sum','avg','max','min']
+                opKeys = ['sum','avg','max','min','calc']
                 attrName = 'category'
                 for obj in dataframe:
                     row = []
