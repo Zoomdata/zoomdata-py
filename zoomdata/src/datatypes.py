@@ -48,6 +48,8 @@ class Attribute(object):
         self.__sortdir =  "DESC"
         self.__sortfunc = "SUM"
         self.__unit = ""
+        self.__histype = False
+        self.__histval = False
         
     def __repr__(self):
         attr = self.getval()
@@ -78,6 +80,20 @@ class Attribute(object):
         self.__sortdir = direction.upper()
         return self
 
+    def histogram(self, type, value=0):
+        types = ['AUTO','SIZE','COUNT']
+        type = type.upper()
+        if type not in types:
+            values = ','.join(types)
+            print('Incorrect value for the histogram type: Use one of these: %s' % types)
+            return False
+        if type in ['SIZE','COUNT'] and value == 0:
+            print('For SIZE and COUNT types a value (limit or interval) must be defined')
+            return False
+        self.__histype = type
+        self.__histval = value
+        return self
+
     def sortby(self, metric):
         if not isinstance(metric, Metric):
             print('metric should be a Metric("name", "func") object')
@@ -90,7 +106,15 @@ class Attribute(object):
         attr = {'name': self.__name, 'type':'ATTRIBUTE', 'limit': self.__limit, 'sort':{}}
         if self.__label:
             attr.update({'label': self.__label})
-        if  self.__unit:
+        if self.__histype:
+            attr['type'] = 'HISTOGRAM'
+            self.__sort = self.__name
+            attr['func'] = self.__histype
+            args = self.__histype.lower()
+            if args in ['count','size']:
+                attr[args] = self.__histval
+            self.__sortfunc = False
+        if self.__unit:
             self.__sort = self.__name
             attr.update({'type': 'TIME', 'granularity':self.__unit})
         if 'ALPHAB' in self.__sortdir:
@@ -103,7 +127,6 @@ class Attribute(object):
         if self.__sortfunc:
             attr['sort'].update({'func':self.__sortfunc})
         return attr
-
             
 class Metric(object):
     def __init__(self, name="count", func="SUM"):

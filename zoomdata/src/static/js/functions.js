@@ -142,15 +142,33 @@ function toPickerFormat(field){
                     picker.forms = field.forms
                 }
     }
-    else{ //Metrics
-        picker = {
-            name:  field.name,
-            type: field.type,
-            func: field.func,
-            label:field.label
-        } 
-        if(field.name == "count") picker.func = undefined
-        if(field.func) picker.func = field.func.toLowerCase()
+    else{ //Metrics or an Attribute for histogram
+            picker = {
+                name: field.name,
+                type: field.type,
+                func: field.func,
+                label:field.label
+            } 
+            if(field.name == "count") picker.func = undefined
+            if(field.func) picker.func = field.func.toLowerCase()
+            if(v_chart.indexOf("Histogram") > -1){
+                //If field comes from the user picker args is not defined
+                if(field.args == undefined){
+                    histfuncs = {"AUTO":"$histogram", 
+                                "SIZE":"$histogram_by_size",
+                                "COUNT":"$histogram_by_count"}
+                    picker.func = histfuncs[field.func]
+                    picker.args = 0
+                    if(field.size) picker.args = field.size
+                    if(field.count) picker.args = field.count
+                }
+                else{
+                    picker.args = field.args
+                }
+                picker.limit = field.limit
+                picker.sort = field.name
+                picker.dir = field.sort.dir.toLowerCase()
+            }
     }
     return picker
 }
@@ -179,7 +197,6 @@ function getValue(oldval, newval, accessor=false){
     }
     return oldval
 }
-
 
 function loadUserPickers(){
     mgroupRegex = /Group [1-9]/g

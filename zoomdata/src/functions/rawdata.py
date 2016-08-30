@@ -125,7 +125,7 @@ class RawData(object):
 
             socketUrl = server_url + "/websocket?key=" + source_key
             socketUrl = socketUrl.replace('https','wss')
-            request = {
+            start_vis = {
                          "api": "VIS",
                          "cid": "f3020fa6e9339ee5829f6e2caa8d2e40",
                          "type": "START_VIS",
@@ -136,19 +136,19 @@ class RawData(object):
                          "fields": fields
             }
             if self.__time:
-                request.update({'time':self.__time})
+                start_vis.update({'time':self.__time})
             #If requested, print the request
             if self.__print_ws_requests:
-                print('----WS URL-----')
                 print(socketUrl)
-                print('----WS REQUEST-----')
-                print(json.dumps(request))
-                print('-------------------')
+                print('====================')
+                print('      START_VIS     ')
+                print('====================')
+                print(json.dumps(start_vis))
             #Clean all attributes
             self.__clear_attrs__()
             # WS request
             ws = create_connection(socketUrl)
-            ws.send(json.dumps(request))
+            ws.send(json.dumps(start_vis))
             req_done = False
             dataframe = []
             maxloop = 0
@@ -167,9 +167,7 @@ class RawData(object):
                         print(frame)
                     return False
                 maxloop += 1
-                frame = frame.replace('false','False')
-                frame = frame.replace('null','None')
-                frame = eval(frame)
+                frame = json.loads(frame)
                 dataframe.extend(frame.get('data',[]))
 
             #Parsing takes a little more due to they're different for each visuals

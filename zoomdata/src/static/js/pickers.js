@@ -192,16 +192,17 @@ $("body").on("click","button.btn-histogram", function() {
             var histgrm = "$"+this.$b.find("#func").val()
             var label = this.$b.find("#metric option:selected").text()
             var args = this.$b.find("#args").val()
+            dir = v_pickersValues[btnAccessor].dir
             type = metricFields.types[metricFields.fields.indexOf(field)]
             //Save the values
                 v_pickersValues[btnAccessor] = {
-                    field: field,
+                    name: field,
                     sort: field,
                     func: histgrm,
                     mfunc: undefined,
                     label: label,
                     args: parseInt(args),
-                    dir: "desc",
+                    dir: dir,
                     limit: 10000,
                     type: type
                 }

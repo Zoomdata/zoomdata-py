@@ -30,6 +30,7 @@ class AggregatedData(object):
 
     def __init__(self, init_data, limit=10000):
         self.__data = init_data
+        self.__is_pivot = False
         self.__dimensions = []
         self.__metrics  = []
         self.__filters  = []
@@ -38,6 +39,7 @@ class AggregatedData(object):
         self.__print_ws_requests = False
 
     def __clear_attrs__(self):
+        self.__is_pivot = False
         self.__dimensions = []
         self.__metrics  = []
         self.__filters  = []
@@ -49,14 +51,23 @@ class AggregatedData(object):
         return self.execute()
 
     def _wsrequest(self):
+        """
+        This option allows to print the ws url and request for debugging purpouses       
+        """
         self.__print_ws_requests = True
         return self
 
     def groupby(self, *args):
+        """
+        Docstring for group by
+        """
         if not args: return self
         attrs = args
         aggregations = []
+        # Visualization data
         aggregationWindows = []
+        # Aggregated data (pivot)
+        aggregationSorts = []
         if isinstance(args[0], list):
             attrs = args[0]
         for f in attrs:
@@ -66,41 +77,71 @@ class AggregatedData(object):
                 return self
             f = f.getval()
             a = {'field':{ 'name':f['name'] }, 'type': 'TERMS' }
-            #Model: { "field": { "name": "field" }, "type": "TERMS" }, or
-            #Model: { "field": { "name": "timefield" }, "type": "TIME", "granularity": "YEAR" },
+            # Model: { "field": { "name": "field" }, "type": "TERMS" }, or
+            # Model: { "field": { "name": "timefield" }, "type": "TIME", "granularity": "YEAR" }, or
+            # Model: { "field"":{ "name": "qtysold" }, "type": "HISTOGRAM", histogramType: "AUTO" }
+            # Time
             if f['type'] == 'TIME':
-                a.update({'type':'TIME', 'granularity':f['granularity']})
+                a.update({'type': f['type'], 'granularity':f['granularity']})
+            # Histogram
+            if f['type'] == 'HISTOGRAM':
+                a.update({'type':f['type'], 'histogramType':f['func']})
+                func = f['func'].lower()
+                value = f.get(func, False)
+                if value:
+                    a[func] = value
             aggregations.append(a)
 
-            agw = {"limit": f['limit'], 
-                  "sort": {
-                          "direction": f['sort']['dir'],
-                          "metric": {}, 
-                          "type": "METRIC"
+            #=== Visualization Data========
+            if not self.__is_pivot:
+                agw = {"limit": f['limit'], 
+                      "sort": {
+                              "direction": f['sort']['dir'],
+                              "metric": {}, 
+                              "type": "METRIC"
+                          }
                       }
-                  }
-            #Model: { "limit": 50, "sort": { "direction": "DESC", "metric": { "type": "COUNT" }, "type": "METRIC" } },
-            if f['sort']['name'] == "count":
-                agw['sort']['metric'].update({'type':'COUNT'})
-            #Model: { "limit": 20, "sort": { "direction": "ASC", "type": "ALPHABETICAL" } }
-            elif f['sort']['name'] == f['name']:
-                agw['sort']['type'] = 'ALPHABETICAL'
-                agw['sort'].pop('metric')
-            #Model:{ "limit": 20, "sort": { "direction": "ASC", "metric": { "field": {"name": "qtysold"}, "function": "SUM", "type": "FIELD" }, "type": "METRIC" } }
-            else:
-                agw['sort']['metric'].update({'field':{'name':f['sort']['name']},
-                                              'type':'FIELD', 
-                                              'function':f['sort']['func']})
-            aggregationWindows.append(agw)
+                #Model: { "limit": 50, "sort": { "direction": "DESC", "metric": { "type": "COUNT" }, "type": "METRIC" } },
+                if f['sort']['name'] == "count":
+                    agw['sort']['metric'].update({'type':'COUNT'})
+                #Model: { "limit": 20, "sort": { "direction": "ASC", "type": "ALPHABETICAL" } }
+                elif f['sort']['name'] == f['name']:
+                    agw['sort']['type'] = 'ALPHABETICAL'
+                    agw['sort'].pop('metric')
+                #Model:{ "limit": 20, "sort": { "direction": "ASC", "metric": { "field": {"name": "qtysold"}, "function": "SUM", "type": "FIELD" }, "type": "METRIC" } }
+                else:
+                    agw['sort']['metric'].update({'field':{'name':f['sort']['name']},
+                                                  'type':'FIELD', 
+                                                  'function':f['sort']['func']})
+                aggregationWindows.append(agw)
+            else: # Pivot data
+                aggregationSorts.append({
+                       "aggregation": a,
+                       "direction": f['sort']['dir'],
+                    })
         #TODO: Support type simple and Histogram
-        self.__dimensions = [{
-                        'aggregations': aggregations, 
-                        'window':{ 'aggregationWindows': aggregationWindows, 
-                                    'type': 'COMPOSITE'}
-                    }]
+        if not self.__is_pivot:
+            self.__dimensions = [{
+                            'aggregations': aggregations, 
+                            'window':{ 'aggregationWindows': aggregationWindows, 
+                                        'type': 'COMPOSITE'}
+                        }]
+        else:
+            self.__dimensions = [{
+                            'aggregations': aggregations, 
+                            'window':{ 'offset': 0, 
+                                       'limit': 10**9,
+                                       'sort': {
+                                                'aggregationSorts':aggregationSorts, 
+                                                'type':'ALPHABETICAL' },
+                                       'type': 'SIMPLE'}
+                            },{'aggregations':[]}]
         return self
 
     def metrics(self, *args):
+        """
+        Docstring for metrics
+        """
         if not args: return self
         mets = []
         if isinstance(args[0], list):
@@ -130,6 +171,9 @@ class AggregatedData(object):
         return self
 
     def filter(self, *args):
+        """
+        Docstring for filters
+        """
         if not args: return self
         filters = args
         if isinstance(args[0], list):
@@ -140,6 +184,10 @@ class AggregatedData(object):
                 self.__error = True
                 return self
         self.__filters = [f.getval() for f in filters]
+        return self
+
+    def pivot(self):
+        self.__is_pivot = True
         return self
 
     def time(self, time):
@@ -170,7 +218,7 @@ class AggregatedData(object):
 
             socketUrl = server_url + "/websocket?key=" + source_key
             socketUrl = socketUrl.replace('https','wss')
-            request = {
+            start_vis = {
                          "api": "VIS",
                          "cid": "f3020fa6e9339ee5829f6e2caa8d2e40",
                          "type": "START_VIS",
@@ -181,23 +229,44 @@ class AggregatedData(object):
                          "filters": self.__filters,
                          "time": self.__time,
             }
+
+            request_data = {
+                        "type":"REQUEST_DATA",
+                        "cid":"f3020fa6e9339ee5829f6e2caa8d2e40",
+                        "request":{
+                                "caller":"RDP",
+                                "delay":2005,
+                                "columnsOffset":0,
+                                "columnsCount":10**9,
+                                "records": 10**18
+                            }
+                    }
             # WS request
             ws = create_connection(socketUrl)
             if self.__print_ws_requests:
-                print('----WS URL-----')
                 print(socketUrl)
-                print('----WS REQUEST-----')
-                print(json.dumps(request))
-                print('-------------------')
-            ws.send(json.dumps(request))
-            req_done = False
+                print('====================')
+                print('      START_VIS     ')
+                print('====================')
+                print(json.dumps(start_vis))
+                if self.__is_pivot:
+                    print('====================')
+                    print('     REQUEST_DATA   ')
+                    print('====================')
+                    print(json.dumps(request_data))
+            ws.send(json.dumps(start_vis))
+            ndd = False
             dataframe = []
             maxloop = 0
-            while maxloop <= 30:
+            for x in range(30):
                 frame = ws.recv() #NOTE: This will hang if no data is received
                 if 'NOT_DIRTY_DATA' in frame:
-                    ws.close()
-                    break
+                    if not self.__is_pivot:
+                        ws.close()
+                        break
+                    else:
+                        ndd = True
+                        break
                 if 'INTERNAL_ERROR' in frame:
                     ws.close()
                     print('An error occured:')
@@ -207,15 +276,33 @@ class AggregatedData(object):
                     else: 
                         print(frame)
                     return False
-                maxloop += 1
-                frame = frame.replace('false','False')
-                frame = frame.replace('null','None')
-                frame = eval(frame)
+                frame = json.loads(frame)
                 dataframe.extend(frame.get('data',[]))
-
-            #Parsing takes a little more due to they're different for each visuals
-            if maxloop == 30: # There was an error
+            else:
                 ws.close()
+            
+            # Perform the second request for SIMPLE data
+            if ndd and self.__is_pivot:
+                ws.send(json.dumps(request_data))
+                for x in range(30):
+                    frame = ws.recv()
+                    if 'data' in frame:
+                        frame = json.loads(frame)
+                        dataframe.extend(frame.get('data',[]))
+                    if 'REQUEST_DATA_DONE':
+                        ws.close()
+                        break
+                    if 'INTERNAL_ERROR' in frame:
+                        ws.close()
+                        print('An error occured:')
+                        frame = json.loads(frame)
+                        if frame.get('details',False):
+                            print(frame['details'])
+                        else: 
+                            print(frame)
+                        return False
+                else:
+                    ws.close()
 
             if dataframe:
                 #Parse the right field type
