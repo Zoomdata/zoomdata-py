@@ -177,7 +177,7 @@ $("body").on("click","button.btn-histogram", function() {
         argsInput = argsInput.replace(find, rep)
         argsInput = argsInput.replace("undefined", "0")
     }
-    table = [["Attribute",metricSelect],["Bars Settings", barsSelect],["Bars", argsInput]]
+    table = [["Metric",metricSelect],["Bars Settings", barsSelect],["Bars", argsInput]]
     var content = makeTable(table,{class: "pickers"})
     var type = v_pickersValues[btnAccessor].type 
     content = setPickers(content ,v_pickersValues[btnAccessor])
