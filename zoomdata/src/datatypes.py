@@ -43,6 +43,7 @@ class Attribute(object):
         self.__name = name
         self.__label = ""
         self.__limit = 1000
+        self.__userlimit = False # If true, limit was setted by the user
         self.__type = "ATTRIBUTE"
         self.__sort =  "count"
         self.__sortdir =  "DESC"
@@ -60,6 +61,7 @@ class Attribute(object):
             print('Incorrect value for the limit')
             return False
         self.__limit = limit
+        self.__userlimit = True
         return self
 
     def unit(self, unit):

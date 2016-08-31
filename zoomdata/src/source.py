@@ -43,6 +43,7 @@ class Source(object):
         self.rawdata    = RawData(data)
         self.first      = RawData(data, limit=1)
         self.data       = AggregatedData(data)
+        self.table      = AggregatedData(data, simple=True)
         # self.setvisualization = Visualization()
 
     def fields(self, conf={}):
@@ -62,7 +63,8 @@ class Source(object):
             for f in vis['objectFields']:
                 dataframe.append([f['name'], f['label'], f['type'], f['visible'],'-'])
             # Formulas
-            for f in vis['formulas']:
+            formulas = vis.get('formulas',[])
+            for f in formulas:
                 dataframe.append([f['name'], f['label'], 'CALC', f['valid'], f['script']])
             dataframe = pd.DataFrame(dataframe, columns=['Name','Label','Type','Visible','Script'])
             return dataframe
