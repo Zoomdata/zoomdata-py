@@ -132,7 +132,7 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
             multiMetricTable.push([checkbox, label, hidden])
 
             //Get the source fields and group them by type
-            var types = {"ATTRIBUTE":[], "TIME":[], "INTEGER":[], "NUMBER":[], "MONEY":[]}
+            var types = {"ATTRIBUTE":[], "TIME":[], "INTEGER":[], "NUMBER":[], "MONEY":[], "TEXT":[], "NULL":[]}
             $.each(window.viz.source.objectFields, function() {
                 if (this.visible) {
                     types[this.type].push(this)
@@ -140,16 +140,21 @@ require(["ZoomdataSDK", "jquery","jQueryConfirm", "lodash", "bootstrap"], functi
             });
 
             //Populate the pickers
+            notValid = ["TEXT","NULL"]
             for(type in types){
                 if(types[type].length > 0){
                     if(metricTypes.indexOf(type) > -1){
                         metOpt += buildHTML("option", "[=="+type+"==]", {value: ""})
                     }
                     else{
-                        dimOpt += buildHTML("option", "[=="+type+"==]", {value: ""})
+                        if(notValid.indexOf(type) == -1){
+                            dimOpt += buildHTML("option", "[=="+type+"==]", {value: ""})
+                        }
                     }
                 }
-                organizePickers(types[type],type)
+                if(notValid.indexOf(type) == -1){
+                    organizePickers(types[type],type)
+                }
                 if(type == "NUMBER"){
                     //Add the volume to the NUMBER section in the selector
                     metOpt += buildHTML("option", volumeLabel, {value:"count"})
