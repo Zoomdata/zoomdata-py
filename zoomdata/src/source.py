@@ -56,6 +56,8 @@ class Source(object):
         server_url = self.__data['url']
         headers = self.__data['headers']
         vis = rest.getSourceById(server_url, headers, self.id)
+        if not vis:
+            return False
         if vis and not conf: # Only print the attrs config. No update
             print('')
             dataframe = []

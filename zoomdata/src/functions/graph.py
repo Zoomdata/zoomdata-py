@@ -200,6 +200,8 @@ class Graph(object):
 
     def __validate_fields(self, pickers):
         fields = self.__source.fields()
+        if not fields:
+            return False
         for key in pickers:
             if pickers[key]:
                 if not isinstance(pickers[key], list):
