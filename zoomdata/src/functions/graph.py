@@ -200,7 +200,7 @@ class Graph(object):
 
     def __validate_fields(self, pickers):
         fields = self.__source.fields()
-        if not fields:
+        if fields.empty:
             return False
         for key in pickers:
             if pickers[key]:
