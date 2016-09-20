@@ -392,7 +392,7 @@ class AggregatedData(object):
                         row.append(obj['current']['count'])
                         if 'count' not in fields:
                             fields.append('count')
-                    if not 'columnTotal' in row[0]:
+                    if not row[0] or not 'columnTotal' in row[0]:
                         dfParsed.append(row)
                 dataframe = dfParsed
                 dataframe = pd.DataFrame(dataframe, columns=fields)
