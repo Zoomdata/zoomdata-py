@@ -136,10 +136,7 @@ class Zoomdata(object):
         if(self._user):
             sources = rest.getAllSources(self._serverURL, self._conf['headers'])
             if sources:
-                count = 1
-                for s in sources:
-                    print(str(count)+'. '+s)
-                    count += 1
+                return pd.DataFrame(sources,columns=['Name'])
         else:
             print('You need to authenticate: ZD.auth("user","password")')
 
